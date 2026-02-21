@@ -112,7 +112,7 @@ void engine::loop() {
     lua_gc(L, LUA_GCCOLLECT, 0);
     const auto fps = frames / elapsed;
     const auto memory = lua_gc(L, LUA_GCCOUNT, 0);
-    fprintf(stderr, "%.1f %dKB\n", fps, memory);
+    fprintf(stdout, "%.1f %dKB\n", fps, memory);
     frames = 0;
     tick = now;
   }
