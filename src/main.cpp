@@ -22,12 +22,17 @@ int main(int argc, char **argv) {
   ma_engine_init(&engine_config, &engine);
   audioengine = &engine;
 
-  // SteamAPI_InitSafe();
+  L = luaL_newstate();
+  luaL_openlibs(L);
+
+  SteamAPI_InitSafe();
 
   application app;
   const auto result = app.run();
 
-  // SteamAPI_Shutdown();
+  SteamAPI_Shutdown();
+
+  lua_close(L);
 
   ma_engine_uninit(&engine);
 

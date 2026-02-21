@@ -2,8 +2,6 @@
 
 #include "common.hpp"
 
-#include "flip.hpp"
-
 class pixmap final {
 public:
   pixmap() = delete;
@@ -14,8 +12,8 @@ public:
     const float sx, const float sy, const float sw, const float sh,
     const float dx, const float dy, const float dw, const float dh,
     const double angle = .0,
-    const uint8_t alpha = 255,
-    const flip flip = flip::none
+    const uint8_t alpha = 255
+    // const flip flip = flip::none
   ) const noexcept;
 
   operator SDL_Texture*() const noexcept;

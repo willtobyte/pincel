@@ -35,7 +35,7 @@ endif()
 # find_package(box2d CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(SPNG CONFIG REQUIRED)
-find_package(Luau CONFIG REQUIRED)
+find_package(luajit CONFIG REQUIRED)
 find_package(miniaudio CONFIG REQUIRED)
 find_package(PhysFS CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
@@ -44,7 +44,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   # box2d::box2d
   EnTT::EnTT
   spng::spng_static
-  Luau::Luau
+  luajit::luajit
   miniaudio::miniaudio
   physfs-static
   SDL3::SDL3-static
