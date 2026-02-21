@@ -1,5 +1,10 @@
 #pragma once
 
+struct transparent_hash final {
+  using is_transparent = void;
+  auto operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
+};
+
 struct SDL_Deleter final {
   template <typename T>
   void operator()(T* ptr) const {
@@ -30,11 +35,6 @@ struct SPNG_Deleter final {
 
     spng_ctx_free(ctx);
   }
-};
-
-struct transparent_hash final {
-  using is_transparent = void;
-  auto operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
 };
 
 struct PHYSFS_Deleter final {

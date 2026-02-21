@@ -26,4 +26,6 @@ extern lua_State* L;
 extern SDL_Renderer* renderer;
 extern ma_engine* audioengine;
 
+constexpr auto MAX_DELTA = 0.05f;
+
 #include "helper.hpp"
