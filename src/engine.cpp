@@ -54,6 +54,8 @@ engine::engine() {
 
   SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_LETTERBOX);
   SDL_SetRenderScale(renderer, scale, scale);
+
+  SDL_RaiseWindow(window);
 }
 
 void engine::run() {
