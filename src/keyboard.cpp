@@ -32,8 +32,8 @@ static int keyboard_index(lua_State *L) {
   if (it == mapping.end()) [[unlikely]]
     return lua_pushnil(L), 1;
 
-  int numkeys;
-  const auto *state = SDL_GetKeyboardState(&numkeys);
+  int keys;
+  const auto *state = SDL_GetKeyboardState(&keys);
   lua_pushboolean(L, state[it->second]);
   return 1;
 }
