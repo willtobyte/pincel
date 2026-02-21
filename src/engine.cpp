@@ -55,6 +55,8 @@ engine::engine() {
   SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_LETTERBOX);
   SDL_SetRenderScale(renderer, scale, scale);
 
+  SDL_HideCursor();
+
   SDL_RaiseWindow(window);
 
   lua_newtable(L);
@@ -112,7 +114,7 @@ void engine::loop() {
     lua_gc(L, LUA_GCCOLLECT, 0);
     const auto fps = frames / elapsed;
     const auto memory = lua_gc(L, LUA_GCCOUNT, 0);
-    fprintf(stdout, "%.1f %dKB\n", fps, memory);
+    std::println("{:.1f} {}KB", fps, memory);
     frames = 0;
     tick = now;
   }
