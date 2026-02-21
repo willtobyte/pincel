@@ -15,6 +15,10 @@ file(GLOB HEADER_FILES CONFIGURE_DEPENDS "src/*.hpp")
 
 add_executable(${PROJECT_NAME})
 
+if(DEVELOPMENT)
+  add_compile_definitions(DEVELOPMENT)
+endif()
+
 add_compile_definitions(
   NOMINMAX
   WIN32_LEAN_AND_MEAN

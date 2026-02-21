@@ -23,7 +23,6 @@ void scriptengine::run() {
 
   lua_pop(L, 2);
 
-  cassette::wire();
   gamepad::wire();
   keyboard::wire();
   mouse::wire();

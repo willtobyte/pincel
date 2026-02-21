@@ -1,43 +1,11 @@
-# Conan specific
-conan.lock
-conanbuildinfo.cmake
-conanbuildinfo.txt
-conaninfo.txt
-graph_info.json
+# Build
 build/
+
+# Cache
+.cache/
 
 # CMake
 CMakeUserPresets.json
 
-# Byte-compiled / optimized / DLL files / Cache
-__pycache__/
-**/test_package/__pycache__/
-*.pyc
-*.py[cod]
-*$py.class
-tmp/
+# OS
 .DS_Store
-
-# Python's Virtualenv
-.venv
-
-# Cache
-.cache
-.cpp-linter_cache
-
-# Misc
-cassette.tape
-
-# Python
-.ropeproject/
-.ruff_cache/
-
-# Carimbo
-stdout.txt
-stderr.txt
-
-# Sentry
-.sentry/
-
-# OpenCode
-.opencode/
