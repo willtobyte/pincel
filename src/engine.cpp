@@ -20,11 +20,11 @@ engine::engine() {
   lua_pop(L, 1);
 
   lua_getfield(L, -1, "width");
-  const auto width = lua_isnumber(L, -1) ? static_cast<int>(lua_tonumber(L, -1)) : 800;
+  const auto width = lua_isnumber(L, -1) ? static_cast<int>(lua_tonumber(L, -1)) : 1920;
   lua_pop(L, 1);
 
   lua_getfield(L, -1, "height");
-  const auto height = lua_isnumber(L, -1) ? static_cast<int>(lua_tonumber(L, -1)) : 600;
+  const auto height = lua_isnumber(L, -1) ? static_cast<int>(lua_tonumber(L, -1)) : 1080;
   lua_pop(L, 1);
 
   lua_getfield(L, -1, "scale");
