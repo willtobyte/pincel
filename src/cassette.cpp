@@ -109,27 +109,27 @@ cassette::cassette() {
     }
 
     if (type == TYPE_NULL) {
-      _data.try_emplace(key, nullptr);
+      _data.emplace(std::string(key), nullptr);
     } else if (type == TYPE_BOOL) {
-      _data.try_emplace(key, value == "1");
+      _data.emplace(std::string(key), value == "1");
     } else if (type == TYPE_INT64) {
       int64_t v{};
       if (auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), v); ec == std::errc{}) {
-        _data.try_emplace(key, v);
+        _data.emplace(std::string(key), v);
       }
     } else if (type == TYPE_UINT64) {
       uint64_t v{};
       if (auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), v); ec == std::errc{}) {
-        _data.try_emplace(key, v);
+        _data.emplace(std::string(key), v);
       }
     } else if (type == TYPE_DOUBLE) {
       char* end{};
       const auto v = std::strtod(value.data(), &end);
       if (end != value.data() && end == value.data() + value.size()) {
-        _data.try_emplace(key, v);
+        _data.emplace(std::string(key), v);
       }
     } else if (type == TYPE_STRING) {
-      _data.try_emplace(key, decode_string(value));
+      _data.emplace(std::string(key), decode_string(value));
     }
   }
 }
@@ -160,17 +160,8 @@ void cassette::persist() const {
     }, value);
   }
 
-#ifdef EMSCRIPTEN
-  std::string script;
-  script.reserve(buffer.size() + 128);
-  std::format_to(std::back_inserter(script), "localStorage.setItem('{}', '", _storagekey);
-  encode_string_to(buffer, script);
-  script.append("')");
-  emscripten_run_script(script.c_str());
-#else
   std::ofstream file(_filename, std::ios::binary | std::ios::trunc);
   file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-#endif
 }
 
 void cassette::clear(std::string_view key) {
@@ -178,8 +169,10 @@ void cassette::clear(std::string_view key) {
     return;
   }
 
-  _data.erase(key);
-  persist();
+  if (const auto it = _data.find(key); it != _data.end()) {
+    _data.erase(it);
+    persist();
+  }
 }
 
 void cassette::clear() {
@@ -194,4 +187,88 @@ std::optional<cassette::value_type> cassette::find(std::string_view key) const n
   }
 
   return it->second;
+}
+
+static cassette instance;
+
+static int cassette_set(lua_State *L) {
+  const auto *key = luaL_checkstring(L, 2);
+
+  switch (lua_type(L, 3)) {
+    case LUA_TNIL:
+      instance.set(key, nullptr);
+      break;
+    case LUA_TBOOLEAN:
+      instance.set(key, lua_toboolean(L, 3) != 0);
+      break;
+    case LUA_TNUMBER: {
+      const auto n = lua_tonumber(L, 3);
+      const auto i = static_cast<int64_t>(n);
+      if (static_cast<double>(i) == n) {
+        instance.set(key, i);
+      } else {
+        instance.set(key, n);
+      }
+      break;
+    }
+    case LUA_TSTRING:
+      instance.set<std::string_view>(key, lua_tostring(L, 3));
+      break;
+    default:
+      return luaL_error(L, "cassette:set unsupported value type");
+  }
+
+  return 0;
+}
+
+static int cassette_get(lua_State *L) {
+  const auto *key = luaL_checkstring(L, 2);
+
+  const auto result = instance.find(key);
+  if (!result) {
+    lua_pushvalue(L, 3);
+    return 1;
+  }
+
+  std::visit([L](const auto &v) {
+    using T = std::decay_t<decltype(v)>;
+
+    if constexpr (std::is_same_v<T, std::nullptr_t>) {
+      lua_pushnil(L);
+    } else if constexpr (std::is_same_v<T, bool>) {
+      lua_pushboolean(L, v);
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      lua_pushinteger(L, static_cast<lua_Integer>(v));
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      lua_pushinteger(L, static_cast<lua_Integer>(v));
+    } else if constexpr (std::is_same_v<T, double>) {
+      lua_pushnumber(L, v);
+    } else if constexpr (std::is_same_v<T, std::string>) {
+      lua_pushlstring(L, v.data(), v.size());
+    }
+  }, *result);
+
+  return 1;
+}
+
+static int cassette_clear(lua_State *L) {
+  if (lua_gettop(L) >= 2 && lua_type(L, 2) == LUA_TSTRING) {
+    instance.clear(lua_tostring(L, 2));
+  } else {
+    instance.clear();
+  }
+
+  return 0;
+}
+
+static const luaL_Reg functions[] = {
+  {"set", cassette_set},
+  {"get", cassette_get},
+  {"clear", cassette_clear},
+  {nullptr, nullptr}
+};
+
+void cassette::wire() {
+  luaL_register(L, "cassette", functions);
+  lua_pop(L, 1);
 }

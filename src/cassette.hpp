@@ -2,8 +2,6 @@
 
 #include "common.hpp"
 
-#include <variant>
-
 class cassette final {
 public:
   using value_type = std::variant<
@@ -24,20 +22,28 @@ public:
       return;
     }
 
+    value_type v;
     if constexpr (std::is_same_v<T, std::nullptr_t>) {
-      _data.insert_or_assign(key, nullptr);
+      v = nullptr;
     } else if constexpr (std::is_same_v<T, bool>) {
-      _data.insert_or_assign(key, value);
+      v = value;
     } else if constexpr (std::is_integral_v<T> && std::is_signed_v<T>) {
-      _data.insert_or_assign(key, static_cast<int64_t>(value));
+      v = static_cast<int64_t>(value);
     } else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T>) {
-      _data.insert_or_assign(key, static_cast<uint64_t>(value));
+      v = static_cast<uint64_t>(value);
     } else if constexpr (std::is_floating_point_v<T>) {
-      _data.insert_or_assign(key, static_cast<double>(value));
+      v = static_cast<double>(value);
     } else if constexpr (std::is_convertible_v<T, std::string> || std::is_convertible_v<T, std::string_view>) {
-      _data.insert_or_assign(key, std::string(value));
+      v = std::string(value);
     } else {
       static_assert(sizeof(T) == 0, "unsupported type for cassette::set");
+    }
+
+    auto it = _data.find(key);
+    if (it != _data.end()) {
+      it->second = std::move(v);
+    } else {
+      _data.emplace(std::string(key), std::move(v));
     }
 
     persist();
@@ -104,8 +110,10 @@ public:
 
   std::optional<value_type> find(std::string_view key) const noexcept;
 
+  static void wire();
+
 private:
-  boost::unordered_flat_map<std::string, value_type, transparent_string_hash, std::equal_to<>> _data;
+  std::unordered_map<std::string, value_type, string_hash, std::equal_to<>> _data;
 
 #ifndef EMSCRIPTEN
   static constexpr const char* _filename = "cassette.tape";

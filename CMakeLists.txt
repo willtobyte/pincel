@@ -32,7 +32,7 @@ if(WIN32)
   )
 endif()
 
-# find_package(box2d CONFIG REQUIRED)
+find_package(box2d CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(SPNG CONFIG REQUIRED)
 find_package(luajit CONFIG REQUIRED)
@@ -42,7 +42,7 @@ find_package(PhysFS CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  # box2d::box2d
+  box2d::box2d
   EnTT::EnTT
   spng::spng_static
   luajit::luajit
