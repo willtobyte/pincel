@@ -1,8 +1,5 @@
 #include "keyboard.hpp"
 
-#include <unordered_map>
-#include <string_view>
-
 static const std::unordered_map<std::string_view, SDL_Scancode> mapping{
   {"a", SDL_SCANCODE_A}, {"b", SDL_SCANCODE_B}, {"c", SDL_SCANCODE_C}, {"d", SDL_SCANCODE_D},
   {"e", SDL_SCANCODE_E}, {"f", SDL_SCANCODE_F}, {"g", SDL_SCANCODE_G}, {"h", SDL_SCANCODE_H},
