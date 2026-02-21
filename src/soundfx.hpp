@@ -21,6 +21,7 @@ public:
   float volume() const noexcept;
 
 private:
+  std::vector<float> _samples;
   ma_audio_buffer _buffer{};
   ma_sound _sound{};
 };

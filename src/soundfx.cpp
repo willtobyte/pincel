@@ -2,7 +2,6 @@
 
 soundfx::soundfx(std::string_view filename) {
   int channels = 0;
-  std::vector<float> samples;
 
   {
     const auto buffer = io::read(filename);
@@ -20,13 +19,13 @@ soundfx::soundfx(std::string_view filename) {
     const auto nsamples = op_pcm_total(opus.get(), -1);
     const auto total = static_cast<size_t>(nsamples) * static_cast<size_t>(channels);
 
-    samples.resize(total);
+    _samples.resize(total);
 
     size_t offset = 0;
     while (offset < total) {
       const auto read = op_read_float(
         opus.get(),
-        samples.data() + offset,
+        _samples.data() + offset,
         static_cast<int>(total - offset),
         nullptr
       );
@@ -45,19 +44,19 @@ soundfx::soundfx(std::string_view filename) {
       offset += static_cast<size_t>(read) * static_cast<size_t>(channels);
     }
 
-    samples.resize(offset);
+    _samples.resize(offset);
   }
 
   auto config = ma_audio_buffer_config_init(
     ma_format_f32,
     static_cast<ma_uint32>(channels),
-    samples.size() / static_cast<size_t>(channels),
-    samples.data(),
+    _samples.size() / static_cast<size_t>(channels),
+    _samples.data(),
     nullptr
   );
   config.sampleRate = 48000;
 
-  ma_audio_buffer_init_copy(&config, &_buffer);
+  ma_audio_buffer_init(&config, &_buffer);
 
   ma_sound_init_from_data_source(
     audioengine,
