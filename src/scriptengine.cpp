@@ -1,5 +1,9 @@
 #include "scriptengine.hpp"
 
+#include "gamepad.hpp"
+#include "keyboard.hpp"
+#include "mouse.hpp"
+
 static int searcher(lua_State *L) {
   const auto *module = luaL_checkstring(L, 1);
   const auto filename = std::format("scripts/{}.lua", module);
@@ -22,6 +26,10 @@ void scriptengine::run() {
   lua_rawseti(L, -2, len + 1);
 
   lua_pop(L, 2);
+
+  gamepad::wire();
+  keyboard::wire();
+  mouse::wire();
 
   auto e = engine();
   e.run();
