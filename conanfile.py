@@ -13,6 +13,7 @@ class Carimbo(ConanFile):
             "libspng/0.7.4",
             "luajit/2.1.0-beta3",
             "miniaudio/0.11.22",
+            "opusfile/0.12",
             "physfs/3.2.0",
             "sdl/3.4.0",
             # "yyjson/0.12.0",

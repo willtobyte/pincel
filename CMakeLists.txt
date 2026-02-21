@@ -37,6 +37,7 @@ find_package(EnTT CONFIG REQUIRED)
 find_package(SPNG CONFIG REQUIRED)
 find_package(luajit CONFIG REQUIRED)
 find_package(miniaudio CONFIG REQUIRED)
+find_package(opusfile CONFIG REQUIRED)
 find_package(PhysFS CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 
@@ -46,6 +47,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   spng::spng_static
   luajit::luajit
   miniaudio::miniaudio
+  opusfile::opusfile
   physfs-static
   SDL3::SDL3-static
 )
