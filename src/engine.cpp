@@ -103,6 +103,20 @@ void engine::loop() {
   const auto delta = std::min(static_cast<float>(static_cast<double>(now - prior) / frequency), MAX_DELTA);
   prior = now;
 
+  static auto tick = now;
+  static auto frames = 0;
+  ++frames;
+  const auto elapsed = static_cast<double>(now - tick) / frequency;
+  if (elapsed >= 1.0) {
+    lua_gc(L, LUA_GCCOLLECT, 0);
+    lua_gc(L, LUA_GCCOLLECT, 0);
+    const auto fps = frames / elapsed;
+    const auto memory = lua_gc(L, LUA_GCCOUNT, 0);
+    fprintf(stderr, "%.1f %dKB\n", fps, memory);
+    frames = 0;
+    tick = now;
+  }
+
   SDL_RenderClear(renderer);
 
   // TODO
