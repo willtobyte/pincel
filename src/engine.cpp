@@ -56,6 +56,24 @@ engine::engine() {
   SDL_SetRenderScale(renderer, scale, scale);
 
   SDL_RaiseWindow(window);
+
+  lua_newtable(L);
+  lua_pushinteger(L, width);
+  lua_setfield(L, -2, "width");
+  lua_pushinteger(L, height);
+  lua_setfield(L, -2, "height");
+
+  lua_newtable(L);
+  lua_pushvalue(L, -2);
+  lua_setfield(L, -2, "__index");
+
+  lua_newtable(L);
+  lua_pushvalue(L, -2);
+  lua_setmetatable(L, -2);
+
+  lua_setglobal(L, "viewport");
+
+  lua_pop(L, 2);
 }
 
 void engine::run() {
