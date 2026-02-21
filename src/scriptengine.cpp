@@ -1,14 +1,14 @@
 #include "scriptengine.hpp"
 
-static int searcher(lua_State *L) {
-  const auto *module = luaL_checkstring(L, 1);
+static int searcher(lua_State *state) {
+  const auto *module = luaL_checkstring(state, 1);
   const auto filename = std::format("scripts/{}.lua", module);
   const auto buffer = io::read(filename);
   const auto *data = reinterpret_cast<const char *>(buffer.data());
   const auto size = buffer.size();
   const auto label = std::format("@{}", filename);
 
-  luaL_loadbuffer(L, data, size, label.c_str());
+  luaL_loadbuffer(state, data, size, label.c_str());
 
   return 1;
 }

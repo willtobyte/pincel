@@ -23,15 +23,15 @@ static const std::unordered_map<std::string_view, SDL_Scancode> mapping{
   {"tab", SDL_SCANCODE_TAB}
 };
 
-static int keyboard_index(lua_State *L) {
-  const auto *key = luaL_checkstring(L, 2);
+static int keyboard_index(lua_State *state) {
+  const auto *key = luaL_checkstring(state, 2);
   const auto it = mapping.find(key);
   if (it == mapping.end()) [[unlikely]]
-    return lua_pushnil(L), 1;
+    return lua_pushnil(state), 1;
 
   int keys;
-  const auto *state = SDL_GetKeyboardState(&keys);
-  lua_pushboolean(L, state[it->second]);
+  const auto *kbstate = SDL_GetKeyboardState(&keys);
+  lua_pushboolean(state, kbstate[it->second]);
   return 1;
 }
 

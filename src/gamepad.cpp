@@ -36,10 +36,10 @@ struct gamepadslot {
       return false;
 
     for (int i = 0; i < count; ++i) {
-      if (SDL_GetGamepadPlayerIndexForID(mapping[i]) >= 0)
+      if (SDL_GetGamepadPlayerIndexForID(mapping[static_cast<size_t>(i)]) >= 0)
         continue;
 
-      gamepad.reset(SDL_OpenGamepad(mapping[i]));
+      gamepad.reset(SDL_OpenGamepad(mapping[static_cast<size_t>(i)]));
       if (gamepad) [[likely]] {
         SDL_SetGamepadPlayerIndex(gamepad.get(), slot);
         return true;
@@ -69,57 +69,57 @@ static const std::unordered_map<std::string_view, SDL_GamepadAxis> axis_mapping{
   {"triggerleft", SDL_GAMEPAD_AXIS_LEFT_TRIGGER}, {"triggerright", SDL_GAMEPAD_AXIS_RIGHT_TRIGGER}
 };
 
-static int gamepadslot_rumble(lua_State *L);
+static int gamepadslot_rumble(lua_State *state);
 
-static int gamepadslot_index(lua_State *L) {
-  auto **ptr = static_cast<gamepadslot **>(luaL_checkudata(L, 1, "GamepadSlot"));
+static int gamepadslot_index(lua_State *state) {
+  auto **ptr = static_cast<gamepadslot **>(luaL_checkudata(state, 1, "GamepadSlot"));
   auto *self = *ptr;
-  const std::string_view name = luaL_checkstring(L, 2);
+  const std::string_view name = luaL_checkstring(state, 2);
   const bool ok = self->valid();
 
   if (name == "connected")
-    return lua_pushboolean(L, ok), 1;
+    return lua_pushboolean(state, ok), 1;
 
   if (name == "name") {
     if (ok) [[likely]]
-      lua_pushstring(L, SDL_GetGamepadName(self->gamepad.get()));
+      lua_pushstring(state, SDL_GetGamepadName(self->gamepad.get()));
     else
-      lua_pushnil(L);
+      lua_pushnil(state);
     return 1;
   }
 
   if (name == "rumble")
-    return lua_pushcfunction(L, gamepadslot_rumble), 1;
+    return lua_pushcfunction(state, gamepadslot_rumble), 1;
 
   if (name == "leftaxis") {
     if (ok) [[likely]] {
-      lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_LEFTX)));
-      lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_LEFTY)));
+      lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_LEFTX))));
+      lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_LEFTY))));
     } else {
-      lua_pushnumber(L, 0);
-      lua_pushnumber(L, 0);
+      lua_pushnumber(state, 0);
+      lua_pushnumber(state, 0);
     }
     return 2;
   }
 
   if (name == "rightaxis") {
     if (ok) [[likely]] {
-      lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_RIGHTX)));
-      lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_RIGHTY)));
+      lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_RIGHTX))));
+      lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_RIGHTY))));
     } else {
-      lua_pushnumber(L, 0);
-      lua_pushnumber(L, 0);
+      lua_pushnumber(state, 0);
+      lua_pushnumber(state, 0);
     }
     return 2;
   }
 
   if (name == "triggers") {
     if (ok) [[likely]] {
-      lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_LEFT_TRIGGER)));
-      lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)));
+      lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_LEFT_TRIGGER))));
+      lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), SDL_GAMEPAD_AXIS_RIGHT_TRIGGER))));
     } else {
-      lua_pushnumber(L, 0);
-      lua_pushnumber(L, 0);
+      lua_pushnumber(state, 0);
+      lua_pushnumber(state, 0);
     }
     return 2;
   }
@@ -128,9 +128,9 @@ static int gamepadslot_index(lua_State *L) {
     const auto it = button_mapping.find(name);
     if (it != button_mapping.end()) [[likely]] {
       if (ok) [[likely]]
-        lua_pushboolean(L, SDL_GetGamepadButton(self->gamepad.get(), it->second));
+        lua_pushboolean(state, SDL_GetGamepadButton(self->gamepad.get(), it->second));
       else
-        lua_pushboolean(L, false);
+        lua_pushboolean(state, false);
       return 1;
     }
   }
@@ -139,61 +139,61 @@ static int gamepadslot_index(lua_State *L) {
     const auto it = axis_mapping.find(name);
     if (it != axis_mapping.end()) {
       if (ok) [[likely]]
-        lua_pushnumber(L, deadzone(SDL_GetGamepadAxis(self->gamepad.get(), it->second)));
+        lua_pushnumber(state, static_cast<double>(deadzone(SDL_GetGamepadAxis(self->gamepad.get(), it->second))));
       else
-        lua_pushnumber(L, 0);
+        lua_pushnumber(state, 0);
       return 1;
     }
   }
 
-  lua_pushnil(L);
+  lua_pushnil(state);
   return 1;
 }
 
-static int gamepadslot_rumble(lua_State *L) {
-  auto **ptr = static_cast<gamepadslot **>(luaL_checkudata(L, 1, "GamepadSlot"));
+static int gamepadslot_rumble(lua_State *state) {
+  auto **ptr = static_cast<gamepadslot **>(luaL_checkudata(state, 1, "GamepadSlot"));
   auto *self = *ptr;
 
-  const auto low = std::clamp(static_cast<float>(luaL_checknumber(L, 2)), 0.0f, 1.0f);
-  const auto high = std::clamp(static_cast<float>(luaL_checknumber(L, 3)), 0.0f, 1.0f);
-  const auto ms = static_cast<Uint32>(luaL_checkinteger(L, 4));
+  const auto low = std::clamp(static_cast<float>(luaL_checknumber(state, 2)), 0.0f, 1.0f);
+  const auto high = std::clamp(static_cast<float>(luaL_checknumber(state, 3)), 0.0f, 1.0f);
+  const auto ms = static_cast<Uint32>(luaL_checkinteger(state, 4));
 
   const auto low16 = static_cast<Uint16>(low * 65535.0f);
   const auto high16 = static_cast<Uint16>(high * 65535.0f);
 
   if (self->valid() && self->gamepad) [[likely]]
-    lua_pushboolean(L, SDL_RumbleGamepad(self->gamepad.get(), low16, high16, ms));
+    lua_pushboolean(state, SDL_RumbleGamepad(self->gamepad.get(), low16, high16, ms));
   else
-    lua_pushboolean(L, false);
+    lua_pushboolean(state, false);
 
   return 1;
 }
 
-static int gamepads_count(lua_State *L) {
+static int gamepads_count(lua_State *state) {
   int total = 0;
   SDL_GetGamepads(&total);
-  lua_pushinteger(L, std::min(total, 4));
+  lua_pushinteger(state, std::min(total, 4));
   return 1;
 }
 
-static int gamepads_index(lua_State *L) {
-  if (lua_type(L, 2) == LUA_TSTRING) {
-    const std::string_view key = lua_tostring(L, 2);
+static int gamepads_index(lua_State *state) {
+  if (lua_type(state, 2) == LUA_TSTRING) {
+    const std::string_view key = lua_tostring(state, 2);
     if (key == "count")
-      return gamepads_count(L);
+      return gamepads_count(state);
 
-    lua_pushnil(L);
+    lua_pushnil(state);
     return 1;
   }
 
-  const auto slot = static_cast<int>(luaL_checkinteger(L, 2));
+  const auto slot = static_cast<int>(luaL_checkinteger(state, 2));
   const auto index = std::clamp(slot, 0, 3);
 
-  auto **udata = static_cast<gamepadslot **>(lua_newuserdata(L, sizeof(gamepadslot *)));
+  auto **udata = static_cast<gamepadslot **>(lua_newuserdata(state, sizeof(gamepadslot *)));
   *udata = &slots[index];
 
-  luaL_getmetatable(L, "GamepadSlot");
-  lua_setmetatable(L, -2);
+  luaL_getmetatable(state, "GamepadSlot");
+  lua_setmetatable(state, -2);
 
   return 1;
 }

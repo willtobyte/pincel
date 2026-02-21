@@ -12,6 +12,13 @@ public:
     double,
     std::string
   >;
+  
+  using unordered_map = std::unordered_map<
+    std::string,
+    value_type,
+    transparent_hash,
+    std::equal_to<>
+  >;
 
   cassette();
   ~cassette() noexcept = default;
@@ -113,13 +120,9 @@ public:
   static void wire();
 
 private:
-  std::unordered_map<std::string, value_type, string_hash, std::equal_to<>> _data;
+  unordered_map _data;
 
-#ifndef EMSCRIPTEN
   static constexpr const char* _filename = "cassette.tape";
-#else
-  static constexpr const char* _storagekey = "cassette";
-#endif
 
   void persist() const;
 };

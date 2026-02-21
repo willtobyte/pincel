@@ -13,7 +13,7 @@ int application::run() {
   } catch (const std::exception& e) {
     const auto* const error = e.what();
 
-    std::println(stderr, "{}", error);
+    std::fprintf(stderr, "%s\n", error);
 
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Ink Spill Disaster", error, nullptr);
 

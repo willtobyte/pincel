@@ -191,18 +191,18 @@ std::optional<cassette::value_type> cassette::find(std::string_view key) const n
 
 static cassette instance;
 
-static int cassette_set(lua_State *L) {
-  const auto *key = luaL_checkstring(L, 2);
+static int cassette_set(lua_State *state) {
+  const auto *key = luaL_checkstring(state, 2);
 
-  switch (lua_type(L, 3)) {
+  switch (lua_type(state, 3)) {
     case LUA_TNIL:
       instance.set(key, nullptr);
       break;
     case LUA_TBOOLEAN:
-      instance.set(key, lua_toboolean(L, 3) != 0);
+      instance.set(key, lua_toboolean(state, 3) != 0);
       break;
     case LUA_TNUMBER: {
-      const auto n = lua_tonumber(L, 3);
+      const auto n = lua_tonumber(state, 3);
       const auto i = static_cast<int64_t>(n);
       if (static_cast<double>(i) == n) {
         instance.set(key, i);
@@ -212,48 +212,48 @@ static int cassette_set(lua_State *L) {
       break;
     }
     case LUA_TSTRING:
-      instance.set<std::string_view>(key, lua_tostring(L, 3));
+      instance.set<std::string_view>(key, lua_tostring(state, 3));
       break;
     default:
-      return luaL_error(L, "cassette:set unsupported value type");
+      return luaL_error(state, "cassette:set unsupported value type");
   }
 
   return 0;
 }
 
-static int cassette_get(lua_State *L) {
-  const auto *key = luaL_checkstring(L, 2);
+static int cassette_get(lua_State *state) {
+  const auto *key = luaL_checkstring(state, 2);
 
   const auto result = instance.find(key);
   if (!result) {
-    lua_pushvalue(L, 3);
+    lua_pushvalue(state, 3);
     return 1;
   }
 
-  std::visit([L](const auto &v) {
+  std::visit([state](const auto &v) {
     using T = std::decay_t<decltype(v)>;
 
     if constexpr (std::is_same_v<T, std::nullptr_t>) {
-      lua_pushnil(L);
+      lua_pushnil(state);
     } else if constexpr (std::is_same_v<T, bool>) {
-      lua_pushboolean(L, v);
+      lua_pushboolean(state, v);
     } else if constexpr (std::is_same_v<T, int64_t>) {
-      lua_pushinteger(L, static_cast<lua_Integer>(v));
+      lua_pushinteger(state, static_cast<lua_Integer>(v));
     } else if constexpr (std::is_same_v<T, uint64_t>) {
-      lua_pushinteger(L, static_cast<lua_Integer>(v));
+      lua_pushinteger(state, static_cast<lua_Integer>(v));
     } else if constexpr (std::is_same_v<T, double>) {
-      lua_pushnumber(L, v);
+      lua_pushnumber(state, v);
     } else if constexpr (std::is_same_v<T, std::string>) {
-      lua_pushlstring(L, v.data(), v.size());
+      lua_pushlstring(state, v.data(), v.size());
     }
   }, *result);
 
   return 1;
 }
 
-static int cassette_clear(lua_State *L) {
-  if (lua_gettop(L) >= 2 && lua_type(L, 2) == LUA_TSTRING) {
-    instance.clear(lua_tostring(L, 2));
+static int cassette_clear(lua_State *state) {
+  if (lua_gettop(state) >= 2 && lua_type(state, 2) == LUA_TSTRING) {
+    instance.clear(lua_tostring(state, 2));
   } else {
     instance.clear();
   }

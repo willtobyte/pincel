@@ -32,7 +32,7 @@ struct SPNG_Deleter final {
   }
 };
 
-struct string_hash final {
+struct transparent_hash final {
   using is_transparent = void;
   auto operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
 };
