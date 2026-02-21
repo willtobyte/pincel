@@ -1,7 +1,5 @@
 #include <SDL3/SDL_main.h>
 
-#include "common.hpp"
-
 int main(int argc, char **argv) {
 #if defined(NDEBUG) && !defined(EMSCRIPTEN) && !defined(DEVELOPMENT)
   if (auto* out = std::freopen("stdout.txt", "w", stdout)) {
@@ -24,16 +22,12 @@ int main(int argc, char **argv) {
   ma_engine_init(&engine_config, &engine);
   audioengine = &engine;
 
-#ifdef HAS_STEAM
-  SteamAPI_InitSafe();
-#endif
+  // SteamAPI_InitSafe();
 
   application app;
   const auto result = app.run();
 
-#ifdef HAS_STEAM
-  SteamAPI_Shutdown();
-#endif
+  // SteamAPI_Shutdown();
 
   ma_engine_uninit(&engine);
 

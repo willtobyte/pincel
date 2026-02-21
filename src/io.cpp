@@ -5,10 +5,9 @@ bool io::exists(std::string_view filename) noexcept {
 }
 
 std::vector<uint8_t> io::read(std::string_view filename) {
-  const auto ptr = unwrap(
-    std::unique_ptr<PHYSFS_File, PHYSFS_Deleter>(PHYSFS_openRead(filename.data())),
-    std::format("[PHYSFS_openRead] error while opening file: {}", filename)
-  );
+  const auto ptr = std::unique_ptr<PHYSFS_File, PHYSFS_Deleter>(PHYSFS_openRead(filename.data()));
+  if (!ptr) [[unlikely]]
+    throw std::runtime_error(std::format("[PHYSFS_openRead] error while opening file: {}", filename));
 
   const auto length = PHYSFS_fileLength(ptr.get());
   [[maybe_unused]] const auto* const length_error = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
