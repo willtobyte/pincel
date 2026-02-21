@@ -1,8 +1,15 @@
 #pragma once
 
 #include <charconv>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <unordered_map>
+#include <variant>
 
 #include <entt/entt.hpp>
 #include <lua.hpp>
