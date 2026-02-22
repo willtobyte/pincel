@@ -10,7 +10,7 @@ public:
     int index;
     float x, y;
     float scale;
-    float rotation;
+    float cosr, sinr;
     uint8_t alpha;
   };
 

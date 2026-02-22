@@ -39,7 +39,8 @@ void compositor::draw() {
         .x = _entries[i].x,
         .y = _entries[i].y,
         .scale = _entries[i].scale,
-        .rotation = _entries[i].rotation,
+        .cosr = _entries[i].cosr,
+        .sinr = _entries[i].sinr,
         .index = _entries[i].index,
         .alpha = _entries[i].alpha,
       });

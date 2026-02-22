@@ -12,7 +12,7 @@ public:
   struct command {
     float x, y;
     float scale;
-    float rotation;
+    float cosr, sinr;
     int index;
     uint8_t alpha;
   };

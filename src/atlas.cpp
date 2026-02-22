@@ -97,10 +97,6 @@ void atlas::enqueue(std::span<const command> commands) {
     const auto hw = s.w * command.scale * 0.5f;
     const auto hh = s.h * command.scale * 0.5f;
 
-    const auto radians = command.rotation * (std::numbers::pi_v<float> / 180.0f);
-    const auto cosr = std::cos(radians);
-    const auto sinr = std::sin(radians);
-
     const auto color = SDL_FColor{ 1.0f, 1.0f, 1.0f, static_cast<float>(command.alpha) / 255.0f };
 
     const float cx[] = { -hw, +hw, +hw, -hw };
@@ -113,8 +109,8 @@ void atlas::enqueue(std::span<const command> commands) {
     for (auto i = 0; i < 4; ++i) {
       _vertices.push_back(SDL_Vertex{
         .position = {
-          cx[i] * cosr - cy[i] * sinr + command.x,
-          cx[i] * sinr + cy[i] * cosr + command.y,
+          cx[i] * command.cosr - cy[i] * command.sinr + command.x,
+          cx[i] * command.sinr + cy[i] * command.cosr + command.y,
         },
         .color = color,
         .tex_coord = { tu[i], tv[i] },
