@@ -2,9 +2,9 @@
 
 atlas::atlas() {
   const auto entries = io::enumerate("blobs/atlas");
-  assert(entries.size() <= CAPACITY && "number of entries exceeds CAPACITY");
-  for (auto n = 0uz; n < entries.size(); ++n) {
-    const auto buffer = io::read(entries[n]);
+  _textures.reserve(entries.size());
+  for (const auto& entry : entries) {
+    const auto buffer = io::read(entry);
   
     auto spng =
       std::unique_ptr<spng_ctx, SPNG_Deleter>(spng_ctx_new(SPNG_CTX_IGNORE_ADLER32));
@@ -29,11 +29,11 @@ atlas::atlas() {
     auto pixels = std::make_unique_for_overwrite<uint8_t[]>(length);
     spng_decode_image(spng.get(), pixels.get(), length, SPNG_FMT_RGBA8, SPNG_DECODE_TRNS);
   
-    _textures[n] = std::unique_ptr<SDL_Texture, SDL_Deleter>(
+    auto& texture = _textures.emplace_back(
         SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height));
   
-    SDL_UpdateTexture(_textures[n].get(), nullptr, pixels.get(), width * SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_RGBA32));
-    SDL_SetTextureScaleMode(_textures[n].get(), SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureBlendMode(_textures[n].get(), SDL_BLENDMODE_BLEND);
+    SDL_UpdateTexture(texture.get(), nullptr, pixels.get(), width * SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_RGBA32));
+    SDL_SetTextureScaleMode(texture.get(), SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_BLEND);
   }
 }
