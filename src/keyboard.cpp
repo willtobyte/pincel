@@ -30,8 +30,8 @@ static int keyboard_index(lua_State *state) {
     return lua_pushnil(state), 1;
 
   int keys;
-  const auto *kbstate = SDL_GetKeyboardState(&keys);
-  lua_pushboolean(state, kbstate[it->second]);
+  const auto *keyboard = SDL_GetKeyboardState(&keys);
+  lua_pushboolean(state, keyboard[it->second]);
   return 1;
 }
 
