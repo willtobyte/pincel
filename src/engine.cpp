@@ -122,6 +122,8 @@ void engine::loop() {
     tick = now;
   }
 
+  compositor->update();
+
   SDL_RenderClear(renderer);
 
   compositor->draw();

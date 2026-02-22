@@ -92,7 +92,7 @@ void atlas::enqueue(std::span<const command> commands) {
 
   for (const auto& command : commands) {
     assert(command.index >= 0 && command.index < static_cast<int>(_sprites.size()) && "sprite index out of bounds");
-    const auto& s = _sprites[command.index];
+    const auto& s = _sprites[static_cast<size_t>(command.index)];
 
     const auto hw = s.w * command.scale * 0.5f;
     const auto hh = s.h * command.scale * 0.5f;
@@ -107,7 +107,7 @@ void atlas::enqueue(std::span<const command> commands) {
     const auto base = static_cast<int>(_vertices.size());
 
     for (auto i = 0; i < 4; ++i) {
-      _vertices.push_back(SDL_Vertex{
+      _vertices.emplace_back(SDL_Vertex{
         .position = {
           cx[i] * command.cosr - cy[i] * command.sinr + command.x,
           cx[i] * command.sinr + cy[i] * command.cosr + command.y,
@@ -117,12 +117,12 @@ void atlas::enqueue(std::span<const command> commands) {
       });
     }
 
-    _indices.push_back(base + 0);
-    _indices.push_back(base + 1);
-    _indices.push_back(base + 2);
-    _indices.push_back(base + 0);
-    _indices.push_back(base + 2);
-    _indices.push_back(base + 3);
+    _indices.emplace_back(base + 0);
+    _indices.emplace_back(base + 1);
+    _indices.emplace_back(base + 2);
+    _indices.emplace_back(base + 0);
+    _indices.emplace_back(base + 2);
+    _indices.emplace_back(base + 3);
   }
 }
 
