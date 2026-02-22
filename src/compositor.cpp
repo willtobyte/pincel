@@ -2,9 +2,9 @@
 #include "io.hpp"
 
 namespace {
-  constexpr size_t initial_quad_capacity = 256;
-  constexpr size_t vertices_per_quad = 4;
-  constexpr size_t indices_per_quad = 6;
+  constexpr auto initial_quad_capacity = 256uz;
+  constexpr auto vertices_per_quad = 4uz;
+  constexpr auto indices_per_quad = 6uz;
 }
 
 compositor::compositor() {
