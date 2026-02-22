@@ -1,9 +1,10 @@
-
 #include "engine.hpp"
+#include "compositor.hpp"
 
 lua_State *L = nullptr;
 ma_engine *audioengine = nullptr;
 SDL_Renderer *renderer = nullptr;
+std::unique_ptr<class compositor> compositor;
 
 engine::engine() {
   const auto buffer = io::read("scripts/main.lua");
@@ -58,6 +59,8 @@ engine::engine() {
   // SDL_HideCursor();
 
   SDL_RaiseWindow(window);
+
+  compositor = std::make_unique<class compositor>();
 
   lua_newtable(L);
   lua_pushinteger(L, width);
@@ -119,11 +122,9 @@ void engine::loop() {
     tick = now;
   }
 
-  // _manager.update(delta);
-
   SDL_RenderClear(renderer);
 
-  // _manager.draw()
+  compositor->draw();
 
   SDL_RenderPresent(renderer);
 

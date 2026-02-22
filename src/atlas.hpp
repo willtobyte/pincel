@@ -10,16 +10,19 @@ public:
   };
 
   struct command {
-    int index;
     float x, y;
     float scale;
     float rotation;
+    int index;
     uint8_t alpha;
   };
 
   atlas() = delete;
-  explicit atlas(std::string_view name);
+  explicit atlas(int id);
   ~atlas() noexcept = default;
+
+  atlas(atlas&&) noexcept = default;
+  atlas& operator=(atlas&&) noexcept = default;
 
   void enqueue(std::span<const command> commands);
   void draw() const noexcept;

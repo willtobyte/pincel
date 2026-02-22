@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.hpp"
+
 class engine final {
 public:
   engine();

@@ -1,8 +1,8 @@
 #include "atlas.hpp"
 #include "io.hpp"
 
-atlas::atlas(std::string_view name) {
-  const auto png = io::read(std::format("blobs/atlas/{}.png", name));
+atlas::atlas(int id) {
+  const auto png = io::read(std::format("blobs/atlas/{}.png", id));
 
   auto spng =
     std::unique_ptr<spng_ctx, SPNG_Deleter>(spng_ctx_new(SPNG_CTX_IGNORE_ADLER32));
@@ -34,7 +34,7 @@ atlas::atlas(std::string_view name) {
   SDL_SetTextureScaleMode(_texture.get(), SDL_SCALEMODE_NEAREST);
   SDL_SetTextureBlendMode(_texture.get(), SDL_BLENDMODE_BLEND);
 
-  const auto text = io::read(std::format("blobs/atlas/{}.txt", name));
+  const auto text = io::read(std::format("blobs/atlas/{}.txt", id));
   const auto content = std::string_view(reinterpret_cast<const char*>(text.data()), text.size());
 
   const auto fw = static_cast<float>(tw);
@@ -91,20 +91,20 @@ void atlas::enqueue(std::span<const command> commands) {
   _indices.clear();
 
   for (const auto& command : commands) {
-    assert(cmd.index >= 0 && cmd.index < static_cast<int>(_sprites.size()) && "sprite index out of bounds");
+    assert(command.index >= 0 && command.index < static_cast<int>(_sprites.size()) && "sprite index out of bounds");
     const auto& s = _sprites[command.index];
 
-    const auto half_w = s.w * command.scale * 0.5f;
-    const auto half_h = s.h * command.scale * 0.5f;
+    const auto hw = s.w * command.scale * 0.5f;
+    const auto hh = s.h * command.scale * 0.5f;
 
-    const auto rad = command.rotation * (std::numbers::pi_v<float> / 180.0f);
-    const auto cos_r = std::cos(rad);
-    const auto sin_r = std::sin(rad);
+    const auto radians = command.rotation * (std::numbers::pi_v<float> / 180.0f);
+    const auto cosr = std::cos(radians);
+    const auto sinr = std::sin(radians);
 
     const auto color = SDL_FColor{ 1.0f, 1.0f, 1.0f, static_cast<float>(command.alpha) / 255.0f };
 
-    const float cx[] = { -half_w, +half_w, +half_w, -half_w };
-    const float cy[] = { -half_h, -half_h, +half_h, +half_h };
+    const float cx[] = { -hw, +hw, +hw, -hw };
+    const float cy[] = { -hh, -hh, +hh, +hh };
     const float tu[] = { s.u0, s.u1, s.u1, s.u0 };
     const float tv[] = { s.v0, s.v0, s.v1, s.v1 };
 
@@ -113,8 +113,8 @@ void atlas::enqueue(std::span<const command> commands) {
     for (auto i = 0; i < 4; ++i) {
       _vertices.push_back(SDL_Vertex{
         .position = {
-          cx[i] * cos_r - cy[i] * sin_r + command.x,
-          cx[i] * sin_r + cy[i] * cos_r + command.y,
+          cx[i] * cosr - cy[i] * sinr + command.x,
+          cx[i] * sinr + cy[i] * cosr + command.y,
         },
         .color = color,
         .tex_coord = { tu[i], tv[i] },

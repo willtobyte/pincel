@@ -25,9 +25,12 @@
 #include <SDL3/SDL.h>
 #include <spng.h>
 
+class compositor;
+
 extern lua_State* L;
 extern SDL_Renderer* renderer;
 extern ma_engine* audioengine;
+extern std::unique_ptr<compositor> compositor;
 
 constexpr auto MAX_DELTA = 0.05f;
 
