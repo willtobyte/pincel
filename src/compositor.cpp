@@ -1,6 +1,12 @@
 #include "compositor.hpp"
 #include "io.hpp"
 
+namespace {
+  constexpr size_t initial_quad_capacity = 256;
+  constexpr size_t vertices_per_quad = 4;
+  constexpr size_t indices_per_quad = 6;
+}
+
 compositor::compositor() {
   const auto entries = io::enumerate("blobs/atlas");
 
@@ -22,9 +28,8 @@ compositor::compositor() {
     _fonts.emplace_back(filename.substr(0, filename.size() - 5));
   }
 
-  _sequence.reserve(64);
-  _vertices.reserve(1024);
-  _indices.reserve(1536);
+  _vertices.reserve(initial_quad_capacity * vertices_per_quad);
+  _indices.reserve(initial_quad_capacity * indices_per_quad);
 }
 
 void compositor::submit(const entry& entry) {
@@ -35,16 +40,10 @@ void compositor::submit(std::span<const entry> entries) {
   _entries.append_range(entries);
 }
 
-void compositor::update() {
-  _sequence.clear();
-  _vertices.clear();
-  _indices.clear();
-
+void compositor::draw() {
   if (_entries.empty()) [[unlikely]] return;
 
   const auto size = _entries.size();
-  _vertices.reserve(size * 4);
-  _indices.reserve(size * 6);
 
   for (auto i = 0uz; i < size;) {
     switch (_entries[i].kind) {
@@ -53,8 +52,9 @@ void compositor::update() {
         assert(id >= 0 && id < static_cast<int>(_atlases.size()) && "atlas index out of bounds");
 
         const auto& a = _atlases[static_cast<size_t>(id)];
-        const auto vbegin = static_cast<int>(_vertices.size());
-        const auto ibegin = static_cast<int>(_indices.size());
+
+        _vertices.clear();
+        _indices.clear();
 
         for (; i < size && _entries[i].kind == sprite && _entries[i].sprite.atlas == id; ++i) {
           const auto& e = _entries[i].sprite;
@@ -83,13 +83,14 @@ void compositor::update() {
           _indices.emplace_back(base + 3);
         }
 
-        _sequence.emplace_back(step{
-          .texture = a._texture.get(),
-          .vertex_begin = vbegin,
-          .vertex_count = static_cast<int>(_vertices.size()) - vbegin,
-          .index_begin = ibegin,
-          .index_count = static_cast<int>(_indices.size()) - ibegin,
-        });
+        SDL_RenderGeometry(
+          renderer,
+          a._texture.get(),
+          _vertices.data(),
+          static_cast<int>(_vertices.size()),
+          _indices.data(),
+          static_cast<int>(_indices.size())
+        );
       } break;
 
       case text: {
@@ -97,8 +98,9 @@ void compositor::update() {
         assert(id >= 0 && id < static_cast<int>(_fonts.size()) && "font index out of bounds");
 
         const auto& f = _fonts[static_cast<size_t>(id)];
-        const auto vbegin = static_cast<int>(_vertices.size());
-        const auto ibegin = static_cast<int>(_indices.size());
+
+        _vertices.clear();
+        _indices.clear();
 
         for (; i < size && _entries[i].kind == text && _entries[i].text.font == id; ++i) {
           const auto& t = _entries[i].text;
@@ -140,29 +142,17 @@ void compositor::update() {
           }
         }
 
-        _sequence.emplace_back(step{
-          .texture = f._texture.get(),
-          .vertex_begin = vbegin,
-          .vertex_count = static_cast<int>(_vertices.size()) - vbegin,
-          .index_begin = ibegin,
-          .index_count = static_cast<int>(_indices.size()) - ibegin,
-        });
+        SDL_RenderGeometry(
+          renderer,
+          f._texture.get(),
+          _vertices.data(),
+          static_cast<int>(_vertices.size()),
+          _indices.data(),
+          static_cast<int>(_indices.size())
+        );
       } break;
     }
   }
 
   _entries.clear();
-}
-
-void compositor::draw() const {
-  for (const auto& s : _sequence) {
-    SDL_RenderGeometry(
-      renderer,
-      s.texture,
-      _vertices.data() + s.vertex_begin,
-      s.vertex_count,
-      _indices.data() + s.index_begin,
-      s.index_count
-    );
-  }
 }

@@ -127,8 +127,6 @@ void engine::loop() {
     .text = {.font = 0, .content = "hello world ()<>{}!", .x = 3.f, .y = 3.f},
   });
 
-  compositor->update();
-
   SDL_RenderClear(renderer);
 
   compositor->draw();

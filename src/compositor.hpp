@@ -32,22 +32,12 @@ public:
 
   void submit(const entry& entry);
   void submit(std::span<const entry> entries);
-  void update();
-  void draw() const;
+  void draw();
 
 private:
-  struct step {
-    SDL_Texture* texture;
-    int vertex_begin;
-    int vertex_count;
-    int index_begin;
-    int index_count;
-  };
-
   std::vector<class atlas> _atlases;
   std::vector<class font> _fonts;
   std::vector<entry> _entries;
-  std::vector<step> _sequence;
   std::vector<SDL_Vertex> _vertices;
   std::vector<int> _indices;
 };
