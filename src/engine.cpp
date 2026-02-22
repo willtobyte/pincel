@@ -62,6 +62,8 @@ engine::engine() {
 
   compositor = std::make_unique<class compositor>();
 
+  _font.emplace("rpg");
+
   lua_newtable(L);
   lua_pushinteger(L, width);
   lua_setfield(L, -2, "width");
@@ -125,6 +127,7 @@ void engine::loop() {
   SDL_RenderClear(renderer);
 
   compositor->draw();
+  _font->draw("Hello, World!", 10.f, 10.f);
 
   SDL_RenderPresent(renderer);
 

@@ -2,9 +2,9 @@
 #include "io.hpp"
 
 namespace {
-  constexpr auto initial_quad_capacity = 256uz;
-  constexpr auto vertices_per_quad = 4uz;
-  constexpr auto indices_per_quad = 6uz;
+  constexpr auto initial_quadrilateral_capacity = 1024uz;
+  constexpr auto vertices_per_quadrilateral = 4uz;
+  constexpr auto indices_per_quadrilateral = 6uz;
 }
 
 compositor::compositor() {
@@ -16,8 +16,8 @@ compositor::compositor() {
     _atlases.emplace(name, atlas{name});
   }
 
-  _vertices.reserve(initial_quad_capacity * vertices_per_quad);
-  _indices.reserve(initial_quad_capacity * indices_per_quad);
+  _vertices.reserve(initial_quadrilateral_capacity * vertices_per_quadrilateral);
+  _indices.reserve(initial_quadrilateral_capacity * indices_per_quadrilateral);
 }
 
 void compositor::submit(const entry& entry) {

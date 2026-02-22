@@ -114,8 +114,7 @@ font::font(std::string_view family) {
       (fy + fh - inset) * ih,
       fw * _scale,
       fh * _scale,
-      fw,
-      true
+      fw
     };
 
     if (first) {
@@ -125,4 +124,58 @@ font::font(std::string_view family) {
 
     x += w;
   }
+
+  constexpr auto vertices_per_quadrilateral = 4uz;
+  constexpr auto indices_per_quadrilateral = 6uz;
+  const auto capacity = _glyphs.size();
+  _vertices.reserve(capacity * vertices_per_quadrilateral);
+  _indices.reserve(capacity * indices_per_quadrilateral);
+}
+
+void font::draw(std::string_view text, float x, float y) const noexcept {
+  if (text.empty()) [[unlikely]] return;
+
+  _vertices.clear();
+  _indices.clear();
+
+  constexpr auto color = SDL_FColor{1.f, 1.f, 1.f, 1.f};
+
+  auto cx = x;
+  auto cy = y;
+
+  for (const auto ch : text) {
+    if (ch == '\n') {
+      cx = x;
+      cy += _fontheight + static_cast<float>(_leading);
+      continue;
+    }
+
+    const auto& g = _props[static_cast<uint8_t>(ch)];
+    const auto base = static_cast<int>(_vertices.size());
+
+    _vertices.emplace_back(SDL_Vertex{{cx,        cy},        color, {g.u0, g.v0}});
+    _vertices.emplace_back(SDL_Vertex{{cx + g.sw, cy},        color, {g.u1, g.v0}});
+    _vertices.emplace_back(SDL_Vertex{{cx + g.sw, cy + g.sh}, color, {g.u1, g.v1}});
+    _vertices.emplace_back(SDL_Vertex{{cx,        cy + g.sh}, color, {g.u0, g.v1}});
+
+    _indices.emplace_back(base);
+    _indices.emplace_back(base + 1);
+    _indices.emplace_back(base + 2);
+    _indices.emplace_back(base);
+    _indices.emplace_back(base + 2);
+    _indices.emplace_back(base + 3);
+
+    cx += g.sw + static_cast<float>(_spacing);
+  }
+
+  if (_vertices.empty()) [[unlikely]] return;
+
+  SDL_RenderGeometry(
+    renderer,
+    _texture.get(),
+    _vertices.data(),
+    static_cast<int>(_vertices.size()),
+    _indices.data(),
+    static_cast<int>(_indices.size())
+  );
 }
