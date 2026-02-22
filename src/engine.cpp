@@ -119,11 +119,11 @@ void engine::loop() {
     tick = now;
   }
 
-  scenemaneger.update(delta);
+  // _manager.update(delta);
 
   SDL_RenderClear(renderer);
 
-  scenemanager.draw()
+  // _manager.draw()
 
   SDL_RenderPresent(renderer);
 

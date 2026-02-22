@@ -1,11 +1,14 @@
 #pragma once
 
 #include <charconv>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <numbers>
 #include <optional>
 #include <print>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
