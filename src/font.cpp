@@ -44,9 +44,7 @@ font::font(std::string_view family) {
         std::from_chars(value.data(), value.data() + value.size(), v);
         _leading = v;
       } else if (key == "scale") {
-        float v;
-        std::from_chars(value.data(), value.data() + value.size(), v);
-        _scale = v;
+        _scale = std::strtof(std::string(value).c_str(), nullptr);
       }
     }
   }
