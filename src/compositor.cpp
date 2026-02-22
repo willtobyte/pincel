@@ -14,10 +14,10 @@ compositor::compositor() {
     _atlases.emplace_back(id);
   }
 
-  const auto fonts = io::enumerate("fonts");
+  const auto fonts = io::enumerate("blobs/fonts");
 
   for (const auto& filename : fonts) {
-    if (!filename.ends_with(".font")) continue;
+    if (!filename.ends_with(".meta")) continue;
 
     _fonts.emplace_back(filename.substr(0, filename.size() - 5));
   }

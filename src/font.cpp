@@ -2,8 +2,8 @@
 #include "io.hpp"
 
 font::font(std::string_view family) {
-  const auto raw = io::read(std::format("fonts/{}.font", family));
-  const auto content = std::string_view(reinterpret_cast<const char*>(raw.data()), raw.size());
+  const auto meta = io::read(std::format("blobs/fonts/{}.meta", family));
+  const auto content = std::string_view(reinterpret_cast<const char*>(meta.data()), meta.size());
 
   auto position = 0uz;
   while (position < content.size()) {
@@ -28,27 +28,30 @@ font::font(std::string_view family) {
 
     while (!key.empty() && (key.back() == ' ' || key.back() == '\t'))
       key.remove_suffix(1);
-    while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
-      value.remove_prefix(1);
 
     if (key == "glyphs") {
       _glyphs = value;
-    } else if (key == "spacing") {
-      int16_t v;
-      std::from_chars(value.data(), value.data() + value.size(), v);
-      _spacing = v;
-    } else if (key == "leading") {
-      int16_t v;
-      std::from_chars(value.data(), value.data() + value.size(), v);
-      _leading = v;
-    } else if (key == "scale") {
-      float v;
-      std::from_chars(value.data(), value.data() + value.size(), v);
-      _scale = v;
+    } else {
+      while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+        value.remove_prefix(1);
+
+      if (key == "spacing") {
+        int16_t v;
+        std::from_chars(value.data(), value.data() + value.size(), v);
+        _spacing = v;
+      } else if (key == "leading") {
+        int16_t v;
+        std::from_chars(value.data(), value.data() + value.size(), v);
+        _leading = v;
+      } else if (key == "scale") {
+        float v;
+        std::from_chars(value.data(), value.data() + value.size(), v);
+        _scale = v;
+      }
     }
   }
 
-  const auto png = io::read(std::format("fonts/{}.png", family));
+  const auto png = io::read(std::format("blobs/fonts/{}.png", family));
 
   auto spng = std::unique_ptr<spng_ctx, SPNG_Deleter>(spng_ctx_new(SPNG_CTX_IGNORE_ADLER32));
 
@@ -74,25 +77,7 @@ font::font(std::string_view family) {
   SDL_SetTextureScaleMode(_texture.get(), SDL_SCALEMODE_NEAREST);
   SDL_SetTextureBlendMode(_texture.get(), SDL_BLENDMODE_BLEND);
 
-  const auto target = std::unique_ptr<SDL_Texture, SDL_Deleter>(
-    SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, _width, _height));
-
-  auto* const origin = SDL_GetRenderTarget(renderer);
-
-  SDL_FlushRenderer(renderer);
-
-  const SDL_FRect destination{0, 0, static_cast<float>(_width), static_cast<float>(_height)};
-
-  SDL_SetRenderTarget(renderer, target.get());
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-  SDL_RenderClear(renderer);
-  SDL_RenderTexture(renderer, _texture.get(), nullptr, &destination);
-
-  const auto surface = std::unique_ptr<SDL_Surface, SDL_Deleter>(SDL_RenderReadPixels(renderer, nullptr));
-
-  SDL_SetRenderTarget(renderer, origin);
-
-  const auto* pixels = static_cast<const uint32_t*>(surface->pixels);
+  const auto* pixels = reinterpret_cast<const uint32_t*>(decoded.get());
   const auto separator = pixels[0];
 
   const auto iw = 1.0f / static_cast<float>(_width);
