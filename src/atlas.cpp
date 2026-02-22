@@ -18,10 +18,10 @@ atlas::atlas() {
     const auto width = static_cast<int>(ihdr.width);
     const auto height = static_cast<int>(ihdr.height);
 
-    [[maybe_unused]] const auto max = static_cast<int>(SDL_GetNumberProperty(
+    [[maybe_unused]] const auto maximum = static_cast<int>(SDL_GetNumberProperty(
       SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0));
-    assert(width <= max && "texture width exceeds GPU maximum texture size");
-    assert(height <= max && "texture height exceeds GPU maximum texture size");
+    assert(width <= maximum && "texture width exceeds GPU maximum texture size");
+    assert(height <= maximum && "texture height exceeds GPU maximum texture size");
 
     size_t length;
     spng_decoded_image_size(spng.get(), SPNG_FMT_RGBA8, &length);
