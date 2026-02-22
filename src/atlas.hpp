@@ -9,14 +9,6 @@ public:
     float w, h;
   };
 
-  struct command {
-    float x, y;
-    float scale;
-    float cosr, sinr;
-    int index;
-    uint8_t alpha;
-  };
-
   atlas() = delete;
   explicit atlas(int id);
   ~atlas() noexcept = default;
@@ -24,12 +16,9 @@ public:
   atlas(atlas&&) noexcept = default;
   atlas& operator=(atlas&&) noexcept = default;
 
-  void enqueue(std::span<const command> commands);
-  void draw() const noexcept;
-
 private:
+  friend class ::compositor;
+
   std::unique_ptr<SDL_Texture, SDL_Deleter> _texture;
   std::vector<sprite> _sprites;
-  std::vector<SDL_Vertex> _vertices;
-  std::vector<int> _indices;
 };

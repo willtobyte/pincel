@@ -37,13 +37,17 @@ public:
 
 private:
   struct step {
-    kind type;
-    int index;
+    SDL_Texture* texture;
+    int vertex_begin;
+    int vertex_count;
+    int index_begin;
+    int index_count;
   };
 
   std::vector<class atlas> _atlases;
   std::vector<class font> _fonts;
   std::vector<entry> _entries;
-  std::vector<atlas::command> _commands;
   std::vector<step> _sequence;
+  std::vector<SDL_Vertex> _vertices;
+  std::vector<int> _indices;
 };
