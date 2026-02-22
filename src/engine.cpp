@@ -123,8 +123,8 @@ void engine::loop() {
   }
 
   compositor->submit({
-    .type = compositor::kind::text,
-    .text = {.font = 0, .content = "hello world ()<>{}!", .position = {3.f, 3.f}},
+    .kind = text,
+    .text = {.font = 0, .content = "hello world ()<>{}!", .x = 3.f, .y = 3.f},
   });
 
   compositor->update();

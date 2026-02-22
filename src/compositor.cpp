@@ -47,8 +47,8 @@ void compositor::update() {
   _indices.reserve(size * 6);
 
   for (auto i = 0uz; i < size;) {
-    switch (_entries[i].type) {
-      case kind::sprite: {
+    switch (_entries[i].kind) {
+      case sprite: {
         const auto id = _entries[i].sprite.atlas;
         assert(id >= 0 && id < static_cast<int>(_atlases.size()) && "atlas index out of bounds");
 
@@ -56,7 +56,7 @@ void compositor::update() {
         const auto vbegin = static_cast<int>(_vertices.size());
         const auto ibegin = static_cast<int>(_indices.size());
 
-        for (; i < size && _entries[i].type == kind::sprite && _entries[i].sprite.atlas == id; ++i) {
+        for (; i < size && _entries[i].kind == sprite && _entries[i].sprite.atlas == id; ++i) {
           const auto& e = _entries[i].sprite;
           assert(e.index >= 0 && e.index < static_cast<int>(a._sprites.size()) && "sprite index out of bounds");
           const auto& s = a._sprites[static_cast<size_t>(e.index)];
@@ -92,7 +92,7 @@ void compositor::update() {
         });
       } break;
 
-      case kind::text: {
+      case text: {
         const auto id = _entries[i].text.font;
         assert(id >= 0 && id < static_cast<int>(_fonts.size()) && "font index out of bounds");
 
@@ -100,15 +100,15 @@ void compositor::update() {
         const auto vbegin = static_cast<int>(_vertices.size());
         const auto ibegin = static_cast<int>(_indices.size());
 
-        for (; i < size && _entries[i].type == kind::text && _entries[i].text.font == id; ++i) {
+        for (; i < size && _entries[i].kind == text && _entries[i].text.font == id; ++i) {
           const auto& t = _entries[i].text;
 
-          auto cx = t.position.x;
-          auto cy = t.position.y;
+          auto cx = t.x;
+          auto cy = t.y;
 
           for (const auto ch : t.content) {
             if (ch == '\n') [[unlikely]] {
-              cx = t.position.x;
+              cx = t.x;
               cy += f._fontheight + f._leading;
               continue;
             }

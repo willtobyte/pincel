@@ -4,12 +4,12 @@
 #include "atlas.hpp"
 #include "font.hpp"
 
+enum category : uint8_t { sprite, text };
+
 class compositor final {
 public:
-  enum class kind : uint8_t { sprite, text };
-
   struct entry {
-    kind type;
+    category kind;
     union {
       struct {
         int atlas;
@@ -22,7 +22,7 @@ public:
       struct {
         int font;
         std::string_view content;
-        SDL_FPoint position;
+        float x, y;
       } text;
     };
   };
