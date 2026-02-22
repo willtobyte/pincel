@@ -1,8 +1,8 @@
 #include "atlas.hpp"
 #include "io.hpp"
 
-atlas::atlas(int id) {
-  const auto png = io::read(std::format("blobs/atlas/{}.png", id));
+atlas::atlas(std::string_view name) {
+  const auto png = io::read(std::format("blobs/atlas/{}.png", name));
 
   auto spng =
     std::unique_ptr<spng_ctx, SPNG_Deleter>(spng_ctx_new(SPNG_CTX_IGNORE_ADLER32));
@@ -34,7 +34,7 @@ atlas::atlas(int id) {
   SDL_SetTextureScaleMode(_texture.get(), SDL_SCALEMODE_NEAREST);
   SDL_SetTextureBlendMode(_texture.get(), SDL_BLENDMODE_BLEND);
 
-  const auto text = io::read(std::format("blobs/atlas/{}.txt", id));
+  const auto text = io::read(std::format("blobs/atlas/{}.meta", name));
   const auto content = std::string_view(reinterpret_cast<const char*>(text.data()), text.size());
 
   const auto fw = static_cast<float>(tw);

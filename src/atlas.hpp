@@ -10,7 +10,7 @@ public:
   };
 
   atlas() = delete;
-  explicit atlas(int id);
+  explicit atlas(std::string_view name);
   ~atlas() noexcept = default;
 
   atlas(atlas&&) noexcept = default;

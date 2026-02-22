@@ -122,11 +122,6 @@ void engine::loop() {
     tick = now;
   }
 
-  compositor->submit({
-    .kind = text,
-    .text = {.font = 0, .content = "hello world ()<>{}!", .x = 3.f, .y = 3.f},
-  });
-
   SDL_RenderClear(renderer);
 
   compositor->draw();
