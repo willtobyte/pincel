@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "manager.hpp"
 
 class engine final {
 public:
@@ -14,4 +15,5 @@ protected:
 
 private:
   bool _running{true};
+  manager _manager;
 };

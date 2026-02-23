@@ -2,10 +2,12 @@
 
 #include "common.hpp"
 
+class compositor;
+
 class scene final {
 public:
-  explicit scene(std::string_view name);
-  ~scene() noexcept = default;
+  scene(std::string_view name, compositor& compositor);
+  ~scene() noexcept;
 
   void on_enter();
 
@@ -14,7 +16,11 @@ public:
   void on_leave();
 
 private:
+  compositor& _compositor;
+  int _G;
+  int _environment;
+  int _pool;
+  int _table;
   entt::registry _registry;
   b2WorldId _world;
-  // sol::enviroment
 };
