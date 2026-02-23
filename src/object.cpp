@@ -7,17 +7,20 @@ namespace {
   }
 }
 
-entt::entity object::create(entt::registry& registry, int16_t z, std::string_view name) {
+entt::entity object::create(entt::registry& registry, int16_t z, std::string_view name, float x, float y, std::string_view animation) {
   const auto entity = registry.create();
   registry.emplace<sorteable>(entity, sorteable{z});
   auto& r = registry.emplace<renderable>(entity);
-  registry.emplace<transform>(entity);
+  registry.emplace<transform>(entity, x, y);
+
+  if (!animation.empty())
+    r.animation = hash(animation);
 
   const auto path = std::format("objects/{}.meta", name);
   const auto buffer = io::read(path);
   const auto content = std::string_view(
     reinterpret_cast<const char*>(buffer.data()), buffer.size());
-  animatable a{};
+  animatable an{};
 
   auto position = 0uz;
   while (position < content.size()) {
@@ -48,23 +51,23 @@ entt::entity object::create(entt::registry& registry, int16_t z, std::string_vie
       continue;
     }
 
-    animation animation{};
-    animation.name = hash(key);
+    struct animation a{};
+    a.name = hash(key);
 
-    auto frames_part = value;
+    auto parts = value;
     if (const auto arrow = value.find('>'); arrow != std::string_view::npos) {
-      frames_part = value.substr(0, arrow);
-      animation.next = hash(value.substr(arrow + 1));
+      parts = value.substr(0, arrow);
+      a.next = hash(value.substr(arrow + 1));
     } else if (value.ends_with('!')) {
-      animation.once = true;
-      frames_part.remove_suffix(1);
+      a.once = true;
+      parts.remove_suffix(1);
     }
 
-    auto cursor = frames_part.data();
-    const auto* const fence = frames_part.data() + frames_part.size();
+    auto cursor = parts.data();
+    const auto* const fence = parts.data() + parts.size();
 
-    while (cursor < fence && animation.count < animation.keyframes.size()) {
-      auto& f = animation.keyframes[animation.count];
+    while (cursor < fence && a.count < a.keyframes.size()) {
+      auto& f = a.keyframes[a.count];
 
       const auto [p1, e1] = std::from_chars(cursor, fence, f.sprite);
       assert(e1 == std::errc{} && *p1 == ':' && "failed to parse sprite index");
@@ -72,16 +75,16 @@ entt::entity object::create(entt::registry& registry, int16_t z, std::string_vie
       const auto [p2, e2] = std::from_chars(p1 + 1, fence, f.duration);
       assert(e2 == std::errc{} && "failed to parse frame duration");
 
-      ++animation.count;
+      ++a.count;
       cursor = p2;
       if (cursor < fence && *cursor == ',') ++cursor;
     }
 
-    assert(a.count < a.animations.size() && "too many animations");
-    a.animations[a.count++] = animation;
+    assert(an.count < an.animations.size() && "too many animations");
+    an.animations[an.count++] = a;
   }
 
-  registry.emplace<animatable>(entity, a.animations, a.count);
+  registry.emplace<animatable>(entity, an.animations, an.count);
   registry.emplace<object>(entity);
 
   return entity;
