@@ -45,7 +45,10 @@ scene::~scene() noexcept {
 }
 
 void scene::on_enter() {
-  object::create(_registry, _next_z++, "char");
+  const auto entity = object::create(_registry, _next_z++, "char");
+  auto& t = _registry.get<transform>(entity);
+  t.x = 100.0f;
+  t.y = 100.0f;
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
   lua_replace(L, LUA_GLOBALSINDEX);

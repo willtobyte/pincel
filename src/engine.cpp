@@ -66,6 +66,7 @@ engine::engine() {
   lua_setglobal(L, "viewport");
 
   _manager = std::make_unique<manager>();
+  _manager->set("test");
 }
 
 void engine::run() {
