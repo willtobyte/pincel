@@ -15,7 +15,7 @@ void animator::update(entt::registry& registry, float delta) {
     const auto* animation = find(a, r.animation);
     if (!animation || animation->count == 0) [[unlikely]] continue;
 
-    r.counter += delta * 1000.0f;
+    r.counter += delta * 1000.f;
 
     while (r.counter >= static_cast<float>(animation->keyframes[r.current_frame].duration)) {
       r.counter -= static_cast<float>(animation->keyframes[r.current_frame].duration);
@@ -25,11 +25,11 @@ void animator::update(entt::registry& registry, float delta) {
       } else if (animation->next != 0) {
         r.animation = animation->next;
         r.current_frame = 0;
-        r.counter = 0.0f;
+        r.counter = .0f;
         animation = find(a, r.animation);
         if (!animation || animation->count == 0) [[unlikely]] break;
       } else if (animation->once) {
-        r.counter = 0.0f;
+        r.counter = .0f;
         break;
       } else {
         r.current_frame = 0;
