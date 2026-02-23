@@ -1,23 +1,31 @@
 #pragma once
 
-#include "common.hpp"
+namespace {
+  constexpr auto max_keyframes = 16uz;
+}
 
-struct frame final {
+struct keyframe final {
   uint32_t sprite{};
   uint32_t duration{};
 };
 
 struct animation final {
   entt::id_type name{};
-  std::array<frame, 16> frames{};
+  std::array<keyframe, max_keyframes> keyframes{};
   uint32_t count{};
   entt::id_type next{};
+  bool once{};
+};
+
+struct animatable final {
+  std::array<animation, max_keyframes> animations{};
+  uint32_t count{};
 };
 
 struct renderable final {
   entt::id_type atlas{};
   entt::id_type animation{};
-  uint32_t counter{};
+  float counter{};
   uint32_t current_frame{};
   uint32_t sprite{};
 };

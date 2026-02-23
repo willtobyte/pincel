@@ -13,6 +13,8 @@ public:
 
   void on_loop(float delta);
 
+  void on_draw();
+
   void on_leave();
 
 private:

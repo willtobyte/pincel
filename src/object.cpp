@@ -7,18 +7,19 @@ namespace {
   }
 }
 
-object::object(entt::registry& registry, int16_t z, std::string_view name)
-    : _registry(&registry)
-    , _entity(registry.create()) {
-  _registry->emplace<sorteable>(_entity, sorteable{z});
-  _registry->emplace<renderable>(_entity);
+entt::entity object::create(entt::registry& registry, int16_t z, std::string_view name) {
+  const auto entity = registry.create();
+  registry.emplace<sorteable>(entity, sorteable{z});
+  registry.emplace<renderable>(entity);
+  registry.emplace<transform>(entity);
 
   const auto path = std::format("objects/{}.meta", name);
   const auto buffer = io::read(path);
   const auto content = std::string_view(
     reinterpret_cast<const char*>(buffer.data()), buffer.size());
 
-  auto& r = _registry->get<renderable>(_entity);
+  auto& r = registry.get<renderable>(entity);
+  animatable a{};
 
   auto position = 0uz;
   while (position < content.size()) {
@@ -41,7 +42,7 @@ object::object(entt::registry& registry, int16_t z, std::string_view name)
     const auto eq = line.find('=');
     if (eq == std::string_view::npos) continue;
 
-    const auto key = line.substr(0, eq);
+    auto key = line.substr(0, eq);
     const auto value = line.substr(eq + 1);
 
     if (key == "atlas") {
@@ -50,6 +51,12 @@ object::object(entt::registry& registry, int16_t z, std::string_view name)
     }
 
     animation animation{};
+
+    if (key.ends_with('!')) {
+      animation.once = true;
+      key.remove_suffix(1);
+    }
+
     animation.name = hash(key);
 
     auto frames_part = value;
@@ -61,8 +68,8 @@ object::object(entt::registry& registry, int16_t z, std::string_view name)
     auto cursor = frames_part.data();
     const auto* const fence = frames_part.data() + frames_part.size();
 
-    while (cursor < fence && animation.count < animation.frames.size()) {
-      auto& f = animation.frames[animation.count];
+    while (cursor < fence && animation.count < animation.keyframes.size()) {
+      auto& f = animation.keyframes[animation.count];
 
       const auto [p1, e1] = std::from_chars(cursor, fence, f.sprite);
       assert(e1 == std::errc{} && *p1 == ':' && "failed to parse sprite index");
@@ -75,49 +82,19 @@ object::object(entt::registry& registry, int16_t z, std::string_view name)
       if (cursor < fence && *cursor == ',') ++cursor;
     }
 
-    _animations.emplace_back(animation);
-
-    if (_animations.size() == 1) {
+    if (a.count == 0) {
       r.animation = animation.name;
-      r.counter = 0;
+      r.counter = 0.0f;
       r.current_frame = 0;
-      r.sprite = animation.frames[0].sprite;
+      r.sprite = animation.keyframes[0].sprite;
     }
+
+    assert(a.count < a.animations.size() && "too many animations");
+    a.animations[a.count++] = animation;
   }
-}
 
-object::~object() noexcept {
-  if (_registry && _entity != entt::null) {
-    _registry->destroy(_entity);
-  }
-}
+  registry.emplace<animatable>(entity, a.animations, a.count);
+  registry.emplace<object>(entity);
 
-object::object(object&& other) noexcept
-  : _registry(other._registry)
-  , _entity(other._entity)
-  , _animations(std::move(other._animations)) {
-  other._registry = nullptr;
-  other._entity = entt::null;
-}
-
-object& object::operator=(object&& other) noexcept {
-  if (this != &other) {
-    if (_registry && _entity != entt::null) {
-      _registry->destroy(_entity);
-    }
-    _registry = other._registry;
-    _entity = other._entity;
-    _animations = std::move(other._animations);
-    other._registry = nullptr;
-    other._entity = entt::null;
-  }
-  return *this;
-}
-
-int16_t object::z() const {
-  return _registry->get<sorteable>(_entity).z;
-}
-
-void object::z(int16_t value) {
-  _registry->get<sorteable>(_entity).z = value;
+  return entity;
 }

@@ -1,4 +1,6 @@
 #include "scene.hpp"
+#include "animator.hpp"
+#include "presenter.hpp"
 
 scene::scene(std::string_view name, compositor& compositor)
   : _compositor(compositor) {
@@ -43,6 +45,8 @@ scene::~scene() noexcept {
 }
 
 void scene::on_enter() {
+  object::create(_registry, _next_z++, "char");
+
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
   lua_replace(L, LUA_GLOBALSINDEX);
 
@@ -57,6 +61,8 @@ void scene::on_enter() {
 }
 
 void scene::on_loop(float delta) {
+  animator::update(_registry, delta);
+
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_loop");
   if (lua_isfunction(L, -1)) {
@@ -66,6 +72,10 @@ void scene::on_loop(float delta) {
     lua_pop(L, 1);
   }
   lua_pop(L, 1);
+}
+
+void scene::on_draw() {
+  presenter::update(_registry, _compositor);
 }
 
 void scene::on_leave() {

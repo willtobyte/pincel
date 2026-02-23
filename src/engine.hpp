@@ -15,5 +15,5 @@ protected:
 
 private:
   bool _running{true};
-  manager _manager;
+  std::unique_ptr<manager> _manager;
 };

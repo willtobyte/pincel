@@ -42,5 +42,8 @@ void manager::update(float delta) {
 }
 
 void manager::draw() {
+  if (!_active) return;
+
+  _active->on_draw();
   _compositor.draw();
 }

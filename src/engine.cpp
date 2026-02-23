@@ -64,6 +64,8 @@ engine::engine() {
   lua_pushinteger(L, height);
   lua_setfield(L, -2, "height");
   lua_setglobal(L, "viewport");
+
+  _manager = std::make_unique<manager>();
 }
 
 void engine::run() {
@@ -118,11 +120,11 @@ void engine::loop() {
     tick = now;
   }
 
-  _manager.update(delta);
+  _manager->update(delta);
 
   SDL_RenderClear(renderer);
 
-  _manager.draw();
+  _manager->draw();
 
   SDL_RenderPresent(renderer);
 
