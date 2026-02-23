@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
+project(pincel LANGUAGES C CXX)
 
 if(APPLE)
   include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.macos.txt)
