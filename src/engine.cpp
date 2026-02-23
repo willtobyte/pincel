@@ -111,9 +111,8 @@ void engine::loop() {
   if (elapsed >= 1.0) {
     lua_gc(L, LUA_GCCOLLECT, 0);
     lua_gc(L, LUA_GCCOLLECT, 0);
-    const auto fps = frames / elapsed;
     const auto memory = lua_gc(L, LUA_GCCOUNT, 0);
-    std::println("{:.1f} {}KB", fps, memory);
+    std::println("{:.1f} {}KB", frames / elapsed, memory);
     frames = 0;
     tick = now;
   }
