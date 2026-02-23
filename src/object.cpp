@@ -43,7 +43,7 @@ entt::entity object::create(entt::registry& registry, int16_t z, std::string_vie
     if (eq == std::string_view::npos) continue;
 
     auto key = line.substr(0, eq);
-    const auto value = line.substr(eq + 1);
+    auto value = line.substr(eq + 1);
 
     if (key == "atlas") {
       r.atlas = hash(value);
@@ -51,18 +51,15 @@ entt::entity object::create(entt::registry& registry, int16_t z, std::string_vie
     }
 
     animation animation{};
-
-    if (key.ends_with('!')) {
-      animation.once = true;
-      key.remove_suffix(1);
-    }
-
     animation.name = hash(key);
 
     auto frames_part = value;
     if (const auto arrow = value.find('>'); arrow != std::string_view::npos) {
       frames_part = value.substr(0, arrow);
       animation.next = hash(value.substr(arrow + 1));
+    } else if (value.ends_with('!')) {
+      animation.once = true;
+      frames_part.remove_suffix(1);
     }
 
     auto cursor = frames_part.data();
@@ -80,13 +77,6 @@ entt::entity object::create(entt::registry& registry, int16_t z, std::string_vie
       ++animation.count;
       cursor = p2;
       if (cursor < fence && *cursor == ',') ++cursor;
-    }
-
-    if (a.count == 0) {
-      r.animation = animation.name;
-      r.counter = 0.0f;
-      r.current_frame = 0;
-      r.sprite = animation.keyframes[0].sprite;
     }
 
     assert(a.count < a.animations.size() && "too many animations");

@@ -49,6 +49,8 @@ void scene::on_enter() {
   auto& t = _registry.get<transform>(entity);
   t.x = 100.0f;
   t.y = 100.0f;
+  auto& r = _registry.get<renderable>(entity);
+  r.animation = entt::hashed_string::value("walk");
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
   lua_replace(L, LUA_GLOBALSINDEX);

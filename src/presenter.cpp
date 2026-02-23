@@ -7,7 +7,7 @@
 
 void presenter::update(entt::registry& registry, compositor& compositor) {
   for (auto&& [entity, t, r, s] : registry.view<transform, renderable, sorteable>().each()) {
-    if (!t.visible) [[unlikely]] continue;
+    if (!t.visible || r.animation == 0) [[unlikely]] continue;
 
     compositor.submit({
       .atlas = r.atlas,
