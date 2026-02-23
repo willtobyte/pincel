@@ -11,7 +11,7 @@ public:
 
   void set(std::string_view name);
 
-  void update();
+  void update(float delta);
 
   void draw();
 

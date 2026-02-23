@@ -11,7 +11,7 @@ public:
 
   void on_enter();
 
-  void on_loop();
+  void on_loop(float delta);
 
   void on_leave();
 

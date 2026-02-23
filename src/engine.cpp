@@ -118,7 +118,7 @@ void engine::loop() {
     tick = now;
   }
 
-  _manager.update();
+  _manager.update(delta);
 
   SDL_RenderClear(renderer);
 

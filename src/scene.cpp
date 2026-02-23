@@ -56,11 +56,12 @@ void scene::on_enter() {
   lua_pop(L, 1);
 }
 
-void scene::on_loop() {
+void scene::on_loop(float delta) {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_loop");
   if (lua_isfunction(L, -1)) {
-    lua_pcall(L, 0, 0, 0);
+    lua_pushnumber(L, static_cast<double>(delta));
+    lua_pcall(L, 1, 0, 0);
   } else {
     lua_pop(L, 1);
   }

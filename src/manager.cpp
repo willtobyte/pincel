@@ -35,10 +35,10 @@ void manager::set(std::string_view name) {
   _active->on_enter();
 }
 
-void manager::update() {
+void manager::update(float delta) {
   if (!_active) return;
 
-  _active->on_loop();
+  _active->on_loop(delta);
 }
 
 void manager::draw() {
