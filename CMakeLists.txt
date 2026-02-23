@@ -1,59 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
-project(pincel LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
-
-set(SDL3_DIR "${CMAKE_BINARY_DIR}")
-
-file(GLOB SOURCE_FILES CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB HEADER_FILES CONFIGURE_DEPENDS "src/*.hpp")
-
-add_executable(${PROJECT_NAME})
-
-if(DEVELOPMENT)
-  add_compile_definitions(DEVELOPMENT)
+if(APPLE)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.macos.txt)
+elseif(WIN32)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.windows.txt)
+else()
+  message(FATAL_ERROR "Unsupported platform")
 endif()
-
-add_compile_definitions(
-  NOMINMAX
-  WIN32_LEAN_AND_MEAN
-)
-
-target_sources(${PROJECT_NAME} PRIVATE
-  ${SOURCE_FILES}
-  ${HEADER_FILES}
-  ${TEMPLATE_FILES}
-)
-
-if(WIN32)
-  set_target_properties(${PROJECT_NAME} PROPERTIES
-    WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
-  )
-endif()
-
-find_package(box2d CONFIG REQUIRED)
-find_package(EnTT CONFIG REQUIRED)
-find_package(SPNG CONFIG REQUIRED)
-find_package(luajit CONFIG REQUIRED)
-find_package(miniaudio CONFIG REQUIRED)
-find_package(opusfile CONFIG REQUIRED)
-find_package(PhysFS CONFIG REQUIRED)
-find_package(SDL3 CONFIG REQUIRED)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE
-  box2d::box2d
-  EnTT::EnTT
-  spng::spng_static
-  luajit::luajit
-  miniaudio::miniaudio
-  opusfile::opusfile
-  physfs-static
-  SDL3::SDL3-static
-)
-
-target_precompile_headers(${PROJECT_NAME} PRIVATE ${HEADER_FILES})

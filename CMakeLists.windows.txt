@@ -1,0 +1,10 @@
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.common.txt)
+
+add_compile_definitions(
+  NOMINMAX
+  WIN32_LEAN_AND_MEAN
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
+)
