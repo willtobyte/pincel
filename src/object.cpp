@@ -10,15 +10,13 @@ namespace {
 entt::entity object::create(entt::registry& registry, int16_t z, std::string_view name) {
   const auto entity = registry.create();
   registry.emplace<sorteable>(entity, sorteable{z});
-  registry.emplace<renderable>(entity);
+  auto& r = registry.emplace<renderable>(entity);
   registry.emplace<transform>(entity);
 
   const auto path = std::format("objects/{}.meta", name);
   const auto buffer = io::read(path);
   const auto content = std::string_view(
     reinterpret_cast<const char*>(buffer.data()), buffer.size());
-
-  auto& r = registry.get<renderable>(entity);
   animatable a{};
 
   auto position = 0uz;
