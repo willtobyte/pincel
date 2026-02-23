@@ -1,5 +1,6 @@
 #include "object.hpp"
 #include "io.hpp"
+#include "scriptable.hpp"
 
 namespace {
   entt::id_type hash(std::string_view sv) {
@@ -16,75 +17,82 @@ entt::entity object::create(entt::registry& registry, int16_t z, std::string_vie
   if (!animation.empty())
     r.animation = hash(animation);
 
-  const auto path = std::format("objects/{}.meta", name);
-  const auto buffer = io::read(path);
-  const auto content = std::string_view(
-    reinterpret_cast<const char*>(buffer.data()), buffer.size());
+  const auto filename = std::format("objects/{}.lua", name);
+  const auto buffer = io::read(filename);
+  const auto* data = reinterpret_cast<const char*>(buffer.data());
+  const auto size = buffer.size();
+  const auto label = std::format("@{}", filename);
+
+  luaL_loadbuffer(L, data, size, label.c_str());
+  lua_pcall(L, 0, 1, 0);
+  assert(lua_istable(L, -1) && "objects lua must return a table");
+
   animatable an{};
 
-  auto position = 0uz;
-  while (position < content.size()) {
-    auto end = content.find('\n', position);
-    if (end == std::string_view::npos) end = content.size();
+  lua_pushnil(L);
+  while (lua_next(L, -2) != 0) {
+    const auto* key = lua_tostring(L, -2);
 
-    auto line = content.substr(position, end - position);
-    position = end + 1;
+    if (std::strcmp(key, "atlas") == 0) {
+      r.atlas = hash(lua_tostring(L, -1));
+      lua_pop(L, 1);
+      continue;
+    }
 
-    if (const auto comment = line.find("--"); comment != std::string_view::npos)
-      line = line.substr(0, comment);
-
-    while (!line.empty() && (line.front() == ' ' || line.front() == '\t'))
-      line.remove_prefix(1);
-    while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r'))
-      line.remove_suffix(1);
-
-    if (line.empty()) continue;
-
-    const auto eq = line.find('=');
-    if (eq == std::string_view::npos) continue;
-
-    auto key = line.substr(0, eq);
-    auto value = line.substr(eq + 1);
-
-    if (key == "atlas") {
-      r.atlas = hash(value);
+    if (!lua_istable(L, -1)) {
+      lua_pop(L, 1);
       continue;
     }
 
     struct animation a{};
     a.name = hash(key);
 
-    auto parts = value;
-    if (const auto arrow = value.find('>'); arrow != std::string_view::npos) {
-      parts = value.substr(0, arrow);
-      a.next = hash(value.substr(arrow + 1));
-    } else if (value.ends_with('!')) {
-      a.once = true;
-      parts.remove_suffix(1);
-    }
+    const auto lenght = static_cast<uint32_t>(lua_objlen(L, -1));
+    for (uint32_t i = 1; i <= lenght && a.count < a.keyframes.size(); ++i) {
+      lua_rawgeti(L, -1, static_cast<int>(i));
+      assert(lua_istable(L, -1) && "keyframe must be a table");
 
-    auto cursor = parts.data();
-    const auto* const fence = parts.data() + parts.size();
+      lua_rawgeti(L, -1, 1);
+      a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
 
-    while (cursor < fence && a.count < a.keyframes.size()) {
-      auto& f = a.keyframes[a.count];
-
-      const auto [p1, e1] = std::from_chars(cursor, fence, f.sprite);
-      assert(e1 == std::errc{} && *p1 == ':' && "failed to parse sprite index");
-
-      const auto [p2, e2] = std::from_chars(p1 + 1, fence, f.duration);
-      assert(e2 == std::errc{} && "failed to parse frame duration");
+      lua_rawgeti(L, -1, 2);
+      a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
 
       ++a.count;
-      cursor = p2;
-      if (cursor < fence && *cursor == ',') ++cursor;
+      lua_pop(L, 1);
     }
+
+    lua_getfield(L, -1, "next");
+    if (lua_isstring(L, -1))
+      a.next = hash(lua_tostring(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "once");
+    if (lua_isboolean(L, -1))
+      a.once = lua_toboolean(L, -1) != 0;
+    lua_pop(L, 1);
 
     assert(an.count < an.animations.size() && "too many animations");
     an.animations[an.count++] = a;
+
+    lua_pop(L, 1);
   }
 
+  auto on_loop_ref = LUA_NOREF;
+
+  lua_getfield(L, -1, "on_loop");
+  if (lua_isfunction(L, -1))
+    on_loop_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    lua_pop(L, 1);
+
+  lua_pop(L, 1);
+
   registry.emplace<animatable>(entity, an.animations, an.count);
+  auto& s = registry.emplace<scriptable>(entity);
+  s.on_loop = on_loop_ref;
   registry.emplace<object>(entity);
 
   return entity;
