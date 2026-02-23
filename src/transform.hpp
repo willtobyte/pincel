@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-struct transform final {
+struct alignas(64) transform final {
   float x{};
   float y{};
   float scale{1.0f};
@@ -10,3 +10,5 @@ struct transform final {
   uint8_t alpha{255};
   bool visible{true};
 };
+
+static_assert(std::is_trivially_copyable_v<transform>);

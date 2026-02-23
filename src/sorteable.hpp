@@ -2,6 +2,8 @@
 
 #include "common.hpp"
 
-struct sorteable final {
+struct alignas(64) sorteable final {
   int16_t z{};
 };
+
+static_assert(std::is_trivially_copyable_v<sorteable>);

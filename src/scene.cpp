@@ -1,7 +1,15 @@
 #include "scene.hpp"
 
+static void on_destroy_scriptable(entt::registry& registry, entt::entity entity) {
+  auto& s = registry.get<scriptable>(entity);
+  if (s.on_loop != LUA_NOREF)
+    luaL_unref(L, LUA_REGISTRYINDEX, s.on_loop);
+}
+
 scene::scene(std::string_view name, compositor& compositor)
-  : _compositor(compositor) {
+    : _compositor(compositor) {
+  _registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
+
   lua_pushvalue(L, LUA_GLOBALSINDEX);
   _G = luaL_ref(L, LUA_REGISTRYINDEX);
 
