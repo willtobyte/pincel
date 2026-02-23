@@ -1,5 +1,9 @@
 #include "font.hpp"
-#include "io.hpp"
+
+namespace {
+  constexpr auto vertices_per_quadrilateral = 4uz;
+  constexpr auto indices_per_quadrilateral = 6uz;
+}
 
 font::font(std::string_view family) {
   const auto meta = io::read(std::format("blobs/fonts/{}.meta", family));
@@ -125,8 +129,6 @@ font::font(std::string_view family) {
     x += w;
   }
 
-  constexpr auto vertices_per_quadrilateral = 4uz;
-  constexpr auto indices_per_quadrilateral = 6uz;
   const auto capacity = _glyphs.size();
   _vertices.reserve(capacity * vertices_per_quadrilateral);
   _indices.reserve(capacity * indices_per_quadrilateral);

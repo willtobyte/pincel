@@ -6,10 +6,11 @@
 class compositor final {
 public:
   struct entry {
-    std::string_view atlas;
+    entt::id_type atlas{};
     int index;
     float x, y, scale, cosr, sinr;
     uint8_t alpha;
+    int16_t z{};
   };
 
   compositor();
@@ -20,7 +21,7 @@ public:
   void draw();
 
 private:
-  std::unordered_map<std::string, class atlas, transparent_hash, std::equal_to<>> _atlases;
+  std::unordered_map<entt::id_type, class atlas> _atlases;
   std::vector<entry> _entries;
   std::vector<SDL_Vertex> _vertices;
   std::vector<int> _indices;
