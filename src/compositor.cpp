@@ -1,5 +1,4 @@
 #include "compositor.hpp"
-#include "io.hpp"
 
 compositor::compositor() {
   const auto entries = io::enumerate("blobs/atlas");

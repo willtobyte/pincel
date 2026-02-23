@@ -1,14 +1,14 @@
 #include "manager.hpp"
-#include "io.hpp"
 
-manager::manager() {
+manager::manager()
+  : _compositor(std::make_unique<compositor>()) {
   const auto entries = io::enumerate("scenes");
 
   for (const auto& entry : entries) {
     if (!entry.ends_with(".lua")) continue;
 
     auto name = std::filesystem::path{entry}.stem().string();
-    _scenes.emplace(name, std::make_unique<scene>(name, _compositor));
+    _scenes.emplace(name, std::make_unique<scene>(name, *_compositor));
   }
 }
 
@@ -45,5 +45,5 @@ void manager::draw() {
   if (!_active) return;
 
   _active->on_draw();
-  _compositor.draw();
+  _compositor->draw();
 }

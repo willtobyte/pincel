@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include "atlas.hpp"
 
 namespace {
   constexpr auto max_entries = 2048uz;

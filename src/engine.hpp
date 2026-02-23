@@ -1,12 +1,13 @@
 #pragma once
 
 #include "common.hpp"
-#include "manager.hpp"
+
+class manager;
 
 class engine final {
 public:
   engine();
-  ~engine() = default;
+  ~engine();
 
   void run();
 

@@ -1,9 +1,4 @@
 #include "presenter.hpp"
-#include "compositor.hpp"
-#include "transform.hpp"
-#include "renderable.hpp"
-#include "sorteable.hpp"
-#include "trigonometry.hpp"
 
 void presenter::update(entt::registry& registry, compositor& compositor) {
   for (auto&& [entity, t, r, s] : registry.view<transform, renderable, sorteable>().each()) {

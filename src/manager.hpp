@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common.hpp"
-#include "compositor.hpp"
-#include "scene.hpp"
+
+class scene;
 
 class manager final {
 public:
@@ -16,7 +16,7 @@ public:
   void draw();
 
 private:
-  compositor _compositor;
+  std::unique_ptr<compositor> _compositor;
   std::unordered_map<std::string, std::unique_ptr<scene>, transparent_hash, std::equal_to<>> _scenes;
   scene* _active{nullptr};
 };

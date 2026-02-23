@@ -1,10 +1,5 @@
 #include "gamepad.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <unordered_map>
-#include <string_view>
-
 static constexpr float DEADZONE_THRESHOLD = 0.1f;
 
 static float deadzone(Sint16 raw) {

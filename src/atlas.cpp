@@ -1,5 +1,4 @@
 #include "atlas.hpp"
-#include "io.hpp"
 
 atlas::atlas(std::string_view name) {
   const auto png = io::read(std::format("blobs/atlas/{}.png", name));

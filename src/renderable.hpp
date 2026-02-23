@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.hpp"
+
 namespace {
   constexpr auto max_keyframes = 16uz;
   constexpr auto max_animations = 16uz;

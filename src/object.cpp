@@ -1,6 +1,4 @@
 #include "object.hpp"
-#include "io.hpp"
-#include "scriptable.hpp"
 
 namespace {
   entt::id_type hash(std::string_view sv) {

@@ -4,6 +4,8 @@ lua_State *L = nullptr;
 ma_engine *audioengine = nullptr;
 SDL_Renderer *renderer = nullptr;
 
+engine::~engine() = default;
+
 engine::engine() {
   const auto buffer = io::read("scripts/main.lua");
   const auto *data = reinterpret_cast<const char *>(buffer.data());
