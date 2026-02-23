@@ -20,5 +20,6 @@ private:
   friend class ::compositor;
 
   std::unique_ptr<SDL_Texture, SDL_Deleter> _texture;
-  std::vector<sprite> _sprites;
+  std::array<sprite, 2048> _sprites{};
+  std::size_t _sprite_count{0};
 };

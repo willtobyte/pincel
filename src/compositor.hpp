@@ -22,7 +22,10 @@ public:
 
 private:
   std::unordered_map<entt::id_type, class atlas> _atlases;
-  std::vector<entry> _entries;
-  std::vector<SDL_Vertex> _vertices;
-  std::vector<int> _indices;
+  std::array<entry, 2048> _entries{};
+  std::size_t _entry_count{0};
+  std::array<SDL_Vertex, 8192> _vertices{};
+  std::size_t _vertex_count{0};
+  std::array<int, 12288> _indices{};
+  std::size_t _index_count{0};
 };

@@ -2,9 +2,9 @@
 #include "io.hpp"
 
 namespace {
-  constexpr auto initial_quadrilateral_capacity = 1024uz;
-  constexpr auto vertices_per_quadrilateral = 4uz;
-  constexpr auto indices_per_quadrilateral = 6uz;
+  constexpr auto max_entries = 2048uz;
+  constexpr auto max_vertices = 8192uz;
+  constexpr auto max_indices = 12288uz;
 }
 
 compositor::compositor() {
@@ -16,76 +16,77 @@ compositor::compositor() {
     const auto id = entt::hashed_string::value(name.c_str(), name.size());
     _atlases.emplace(id, atlas{name});
   }
-
-  _vertices.reserve(initial_quadrilateral_capacity * vertices_per_quadrilateral);
-  _indices.reserve(initial_quadrilateral_capacity * indices_per_quadrilateral);
 }
 
 void compositor::submit(const entry& entry) {
-  _entries.emplace_back(entry);
+  assert(_entry_count < max_entries && "entry count exceeds maximum");
+  _entries[_entry_count++] = entry;
 }
 
 void compositor::submit(std::span<const entry> entries) {
-  _entries.append_range(entries);
+  assert(_entry_count + entries.size() <= max_entries && "entry count exceeds maximum");
+  std::copy(entries.begin(), entries.end(), _entries.begin() + static_cast<std::ptrdiff_t>(_entry_count));
+  _entry_count += entries.size();
 }
 
 void compositor::draw() {
-  if (_entries.empty()) [[unlikely]] return;
+  if (_entry_count == 0) [[unlikely]] return;
 
-  const auto size = _entries.size();
+  std::sort(_entries.begin(), _entries.begin() + static_cast<std::ptrdiff_t>(_entry_count),
+    [](const entry& a, const entry& b) {
+      return a.z < b.z || (a.z == b.z && a.atlas < b.atlas);
+    });
 
-  std::sort(_entries.begin(), _entries.end(), [](const entry& a, const entry& b) {
-    return a.z < b.z || (a.z == b.z && a.atlas < b.atlas);
-  });
-
-  for (auto i = 0uz; i < size;) {
+  for (auto i = 0uz; i < _entry_count;) {
     const auto atlas_id = _entries[i].atlas;
     const auto it = _atlases.find(atlas_id);
     assert(it != _atlases.end() && "atlas not found");
 
     const auto& a = it->second;
 
-    _vertices.clear();
-    _indices.clear();
+    _vertex_count = 0;
+    _index_count = 0;
 
     const auto z = _entries[i].z;
 
-    for (; i < size && _entries[i].z == z && _entries[i].atlas == atlas_id; ++i) {
+    for (; i < _entry_count && _entries[i].z == z && _entries[i].atlas == atlas_id; ++i) {
       const auto& e = _entries[i];
-      assert(e.index >= 0 && e.index < static_cast<int>(a._sprites.size()) && "sprite index out of bounds");
+      assert(e.index >= 0 && e.index < static_cast<int>(a._sprite_count) && "sprite index out of bounds");
       const auto& s = a._sprites[static_cast<size_t>(e.index)];
 
       const auto hw = s.w * e.scale * 0.5f;
       const auto hh = s.h * e.scale * 0.5f;
       const auto color = SDL_FColor{1.0f, 1.0f, 1.0f, static_cast<float>(e.alpha) / 255.0f};
-      const auto base = static_cast<int>(_vertices.size());
+      const auto base = static_cast<int>(_vertex_count);
 
-      _vertices.emplace_back(SDL_Vertex{
-        {-hw * e.cosr - -hh * e.sinr + e.x, -hw * e.sinr + -hh * e.cosr + e.y}, color, {s.u0, s.v0}});
-      _vertices.emplace_back(SDL_Vertex{
-        {+hw * e.cosr - -hh * e.sinr + e.x, +hw * e.sinr + -hh * e.cosr + e.y}, color, {s.u1, s.v0}});
-      _vertices.emplace_back(SDL_Vertex{
-        {+hw * e.cosr - +hh * e.sinr + e.x, +hw * e.sinr + +hh * e.cosr + e.y}, color, {s.u1, s.v1}});
-      _vertices.emplace_back(SDL_Vertex{
-        {-hw * e.cosr - +hh * e.sinr + e.x, -hw * e.sinr + +hh * e.cosr + e.y}, color, {s.u0, s.v1}});
+      assert(_vertex_count + 4 <= max_vertices && "vertex count exceeds maximum");
+      _vertices[_vertex_count++] = SDL_Vertex{
+        {-hw * e.cosr - -hh * e.sinr + e.x, -hw * e.sinr + -hh * e.cosr + e.y}, color, {s.u0, s.v0}};
+      _vertices[_vertex_count++] = SDL_Vertex{
+        {+hw * e.cosr - -hh * e.sinr + e.x, +hw * e.sinr + -hh * e.cosr + e.y}, color, {s.u1, s.v0}};
+      _vertices[_vertex_count++] = SDL_Vertex{
+        {+hw * e.cosr - +hh * e.sinr + e.x, +hw * e.sinr + +hh * e.cosr + e.y}, color, {s.u1, s.v1}};
+      _vertices[_vertex_count++] = SDL_Vertex{
+        {-hw * e.cosr - +hh * e.sinr + e.x, -hw * e.sinr + +hh * e.cosr + e.y}, color, {s.u0, s.v1}};
 
-      _indices.emplace_back(base);
-      _indices.emplace_back(base + 1);
-      _indices.emplace_back(base + 2);
-      _indices.emplace_back(base);
-      _indices.emplace_back(base + 2);
-      _indices.emplace_back(base + 3);
+      assert(_index_count + 6 <= max_indices && "index count exceeds maximum");
+      _indices[_index_count++] = base;
+      _indices[_index_count++] = base + 1;
+      _indices[_index_count++] = base + 2;
+      _indices[_index_count++] = base;
+      _indices[_index_count++] = base + 2;
+      _indices[_index_count++] = base + 3;
     }
 
     SDL_RenderGeometry(
       renderer,
       a._texture.get(),
       _vertices.data(),
-      static_cast<int>(_vertices.size()),
+      static_cast<int>(_vertex_count),
       _indices.data(),
-      static_cast<int>(_indices.size())
+      static_cast<int>(_index_count)
     );
   }
 
-  _entries.clear();
+  _entry_count = 0;
 }

@@ -1,8 +1,8 @@
 #include "font.hpp"
 
 namespace {
-  constexpr auto vertices_per_quadrilateral = 4uz;
-  constexpr auto indices_per_quadrilateral = 6uz;
+  constexpr auto max_vertices = 1024uz;
+  constexpr auto max_indices = 1536uz;
 }
 
 font::font(std::string_view family) {
@@ -129,16 +129,13 @@ font::font(std::string_view family) {
     x += w;
   }
 
-  const auto capacity = _glyphs.size();
-  _vertices.reserve(capacity * vertices_per_quadrilateral);
-  _indices.reserve(capacity * indices_per_quadrilateral);
 }
 
 void font::draw(std::string_view text, float x, float y) const noexcept {
   if (text.empty()) [[unlikely]] return;
 
-  _vertices.clear();
-  _indices.clear();
+  _vertex_count = 0;
+  _index_count = 0;
 
   constexpr auto color = SDL_FColor{1.f, 1.f, 1.f, 1.f};
 
@@ -152,32 +149,34 @@ void font::draw(std::string_view text, float x, float y) const noexcept {
       continue;
     }
 
+    if (_vertex_count + 4 > max_vertices) break;
+
     const auto& g = _props[static_cast<uint8_t>(ch)];
-    const auto base = static_cast<int>(_vertices.size());
+    const auto base = static_cast<int>(_vertex_count);
 
-    _vertices.emplace_back(SDL_Vertex{{cx,        cy},        color, {g.u0, g.v0}});
-    _vertices.emplace_back(SDL_Vertex{{cx + g.sw, cy},        color, {g.u1, g.v0}});
-    _vertices.emplace_back(SDL_Vertex{{cx + g.sw, cy + g.sh}, color, {g.u1, g.v1}});
-    _vertices.emplace_back(SDL_Vertex{{cx,        cy + g.sh}, color, {g.u0, g.v1}});
+    _vertices[_vertex_count++] = SDL_Vertex{{cx,        cy},        color, {g.u0, g.v0}};
+    _vertices[_vertex_count++] = SDL_Vertex{{cx + g.sw, cy},        color, {g.u1, g.v0}};
+    _vertices[_vertex_count++] = SDL_Vertex{{cx + g.sw, cy + g.sh}, color, {g.u1, g.v1}};
+    _vertices[_vertex_count++] = SDL_Vertex{{cx,        cy + g.sh}, color, {g.u0, g.v1}};
 
-    _indices.emplace_back(base);
-    _indices.emplace_back(base + 1);
-    _indices.emplace_back(base + 2);
-    _indices.emplace_back(base);
-    _indices.emplace_back(base + 2);
-    _indices.emplace_back(base + 3);
+    _indices[_index_count++] = base;
+    _indices[_index_count++] = base + 1;
+    _indices[_index_count++] = base + 2;
+    _indices[_index_count++] = base;
+    _indices[_index_count++] = base + 2;
+    _indices[_index_count++] = base + 3;
 
     cx += g.sw + static_cast<float>(_spacing);
   }
 
-  if (_vertices.empty()) [[unlikely]] return;
+  if (_vertex_count == 0) [[unlikely]] return;
 
   SDL_RenderGeometry(
     renderer,
     _texture.get(),
     _vertices.data(),
-    static_cast<int>(_vertices.size()),
+    static_cast<int>(_vertex_count),
     _indices.data(),
-    static_cast<int>(_indices.size())
+    static_cast<int>(_index_count)
   );
 }

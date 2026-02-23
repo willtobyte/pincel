@@ -1,6 +1,10 @@
 #include "atlas.hpp"
 #include "io.hpp"
 
+namespace {
+  constexpr auto max_sprites = 2048uz;
+}
+
 atlas::atlas(std::string_view name) {
   const auto png = io::read(std::format("blobs/atlas/{}.png", name));
 
@@ -71,14 +75,14 @@ atlas::atlas(std::string_view name) {
     const auto [p4, e4] = std::from_chars(p3 + 1, fence, h);
     assert(e4 == std::errc{} && "failed to parse h in atlas entry");
 
-    _sprites.emplace_back(
-      sprite{
-        .u0 = static_cast<float>(x) / fw,
-        .v0 = static_cast<float>(y) / fh,
-        .u1 = static_cast<float>(x + w) / fw,
-        .v1 = static_cast<float>(y + h) / fh,
-        .w = static_cast<float>(w),
-        .h = static_cast<float>(h),
-      });
+    assert(_sprite_count < max_sprites && "sprite count exceeds maximum");
+    _sprites[_sprite_count++] = sprite{
+      .u0 = static_cast<float>(x) / fw,
+      .v0 = static_cast<float>(y) / fh,
+      .u1 = static_cast<float>(x + w) / fw,
+      .v1 = static_cast<float>(y + h) / fh,
+      .w = static_cast<float>(w),
+      .h = static_cast<float>(h),
+    };
   }
 }
