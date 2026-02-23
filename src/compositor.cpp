@@ -1,12 +1,6 @@
 #include "compositor.hpp"
 #include "io.hpp"
 
-namespace {
-  constexpr auto max_entries = 2048uz;
-  constexpr auto max_vertices = 8192uz;
-  constexpr auto max_indices = 12288uz;
-}
-
 compositor::compositor() {
   const auto entries = io::enumerate("blobs/atlas");
 
@@ -59,7 +53,7 @@ void compositor::draw() {
       const auto color = SDL_FColor{1.0f, 1.0f, 1.0f, static_cast<float>(e.alpha) / 255.0f};
       const auto base = static_cast<int>(_vertex_count);
 
-      assert(_vertex_count + 4 <= max_vertices && "vertex count exceeds maximum");
+      assert(_vertex_count + 4 <= max_compositor_vertices && "vertex count exceeds maximum");
       _vertices[_vertex_count++] = SDL_Vertex{
         {-hw * e.cosr - -hh * e.sinr + e.x, -hw * e.sinr + -hh * e.cosr + e.y}, color, {s.u0, s.v0}};
       _vertices[_vertex_count++] = SDL_Vertex{
@@ -69,7 +63,7 @@ void compositor::draw() {
       _vertices[_vertex_count++] = SDL_Vertex{
         {-hw * e.cosr - +hh * e.sinr + e.x, -hw * e.sinr + +hh * e.cosr + e.y}, color, {s.u0, s.v1}};
 
-      assert(_index_count + 6 <= max_indices && "index count exceeds maximum");
+      assert(_index_count + 6 <= max_compositor_indices && "index count exceeds maximum");
       _indices[_index_count++] = base;
       _indices[_index_count++] = base + 1;
       _indices[_index_count++] = base + 2;

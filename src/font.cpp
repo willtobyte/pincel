@@ -1,10 +1,5 @@
 #include "font.hpp"
 
-namespace {
-  constexpr auto max_vertices = 1024uz;
-  constexpr auto max_indices = 1536uz;
-}
-
 font::font(std::string_view family) {
   const auto meta = io::read(std::format("blobs/fonts/{}.meta", family));
   const auto content = std::string_view(reinterpret_cast<const char*>(meta.data()), meta.size());
@@ -149,7 +144,7 @@ void font::draw(std::string_view text, float x, float y) const noexcept {
       continue;
     }
 
-    if (_vertex_count + 4 > max_vertices) break;
+    if (_vertex_count + 4 > max_font_vertices) break;
 
     const auto& g = _props[static_cast<uint8_t>(ch)];
     const auto base = static_cast<int>(_vertex_count);

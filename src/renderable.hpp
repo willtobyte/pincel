@@ -2,6 +2,7 @@
 
 namespace {
   constexpr auto max_keyframes = 16uz;
+  constexpr auto max_animations = 16uz;
 }
 
 struct keyframe final {
@@ -18,7 +19,7 @@ struct animation final {
 };
 
 struct animatable final {
-  std::array<animation, max_keyframes> animations{};
+  std::array<animation, max_animations> animations{};
   uint32_t count{};
 };
 

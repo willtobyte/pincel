@@ -2,6 +2,10 @@
 
 #include "common.hpp"
 
+namespace {
+  constexpr auto max_sprites = 2048uz;
+}
+
 class atlas final {
 public:
   struct sprite {
@@ -20,6 +24,6 @@ private:
   friend class ::compositor;
 
   std::unique_ptr<SDL_Texture, SDL_Deleter> _texture;
-  std::array<sprite, 2048> _sprites{};
+  std::array<sprite, max_sprites> _sprites{};
   std::size_t _sprite_count{0};
 };

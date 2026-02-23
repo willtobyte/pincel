@@ -1,10 +1,6 @@
 #include "atlas.hpp"
 #include "io.hpp"
 
-namespace {
-  constexpr auto max_sprites = 2048uz;
-}
-
 atlas::atlas(std::string_view name) {
   const auto png = io::read(std::format("blobs/atlas/{}.png", name));
 
