@@ -174,8 +174,11 @@ namespace {
     const auto label = std::format("@{}", filename);
 
     luaL_loadbuffer(L, data, size, label.c_str());
-    lua_pcall(L, 0, 1, 0);
-    assert(lua_istable(L, -1) && "objects lua must return a table");
+    if (lua_pcall(L, 0, 1, 0) != 0) {
+      std::string error = lua_tostring(L, -1);
+      lua_pop(L, 1);
+      throw std::runtime_error(error);
+    }
 
     animatable animatable{};
 
@@ -307,8 +310,11 @@ scene::scene(std::string_view name, compositor& compositor)
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
   lua_setfenv(L, -2);
 
-  lua_pcall(L, 0, 1, 0);
-  assert(lua_istable(L, -1) && "scene lua must return a table");
+  if (lua_pcall(L, 0, 1, 0) != 0) {
+    std::string error = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    throw std::runtime_error(error);
+  }
 
   const auto count = static_cast<int>(lua_objlen(L, -1));
   for (int i = 1; i <= count; ++i) {
@@ -360,8 +366,11 @@ void scene::on_enter() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_enter");
   if (lua_isfunction(L, -1)) {
-    if (lua_pcall(L, 0, 0, 0) != 0)
-      lua_pop(L, 1);
+    if (lua_pcall(L, 0, 0, 0) != 0) {
+      std::string error = lua_tostring(L, -1);
+      lua_pop(L, 2);
+      throw std::runtime_error(error);
+    }
   } else {
     lua_pop(L, 1);
   }
@@ -383,8 +392,11 @@ void scene::on_loop(float delta) {
   lua_getfield(L, -1, "on_loop");
   if (lua_isfunction(L, -1)) {
     lua_pushnumber(L, static_cast<double>(delta));
-    if (lua_pcall(L, 1, 0, 0) != 0)
-      lua_pop(L, 1);
+    if (lua_pcall(L, 1, 0, 0) != 0) {
+      std::string error = lua_tostring(L, -1);
+      lua_pop(L, 2);
+      throw std::runtime_error(error);
+    }
   } else {
     lua_pop(L, 1);
   }
@@ -399,8 +411,11 @@ void scene::on_leave() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_leave");
   if (lua_isfunction(L, -1)) {
-    if (lua_pcall(L, 0, 0, 0) != 0)
-      lua_pop(L, 1);
+    if (lua_pcall(L, 0, 0, 0) != 0) {
+      std::string error = lua_tostring(L, -1);
+      lua_pop(L, 2);
+      throw std::runtime_error(error);
+    }
   } else {
     lua_pop(L, 1);
   }

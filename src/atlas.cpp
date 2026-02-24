@@ -43,8 +43,11 @@ atlas::atlas(std::string_view name) {
   const auto label = std::format("@{}", filename);
 
   luaL_loadbuffer(L, data, size, label.c_str());
-  lua_pcall(L, 0, 1, 0);
-  assert(lua_istable(L, -1) && "atlas lua must return a table");
+  if (lua_pcall(L, 0, 1, 0) != 0) {
+    std::string error = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    throw std::runtime_error(error);
+  }
 
   const auto count = static_cast<uint32_t>(lua_objlen(L, -1));
   for (uint32_t i = 1; i <= count; ++i) {

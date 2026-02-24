@@ -8,8 +8,11 @@ font::font(std::string_view family) {
   const auto label = std::format("@{}", filename);
 
   luaL_loadbuffer(L, data, size, label.c_str());
-  lua_pcall(L, 0, 1, 0);
-  assert(lua_istable(L, -1) && "font lua must return a table");
+  if (lua_pcall(L, 0, 1, 0) != 0) {
+    std::string error = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    throw std::runtime_error(error);
+  }
 
   lua_getfield(L, -1, "glyphs");
   assert(lua_isstring(L, -1) && "font lua must have a glyphs string");

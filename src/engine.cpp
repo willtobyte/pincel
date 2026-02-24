@@ -12,9 +12,11 @@ engine::engine() {
   const auto size = buffer.size();
 
   luaL_loadbuffer(L, data, size, "@main.lua");
-  lua_pcall(L, 0, 1, 0);
-
-  assert(lua_istable(L, -1) && "scripts/main.lua must return a table");
+  if (lua_pcall(L, 0, 1, 0) != 0) {
+    std::string error = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    throw std::runtime_error(error);
+  }
 
   lua_getfield(L, -1, "title");
   const auto *title = lua_isstring(L, -1) ? lua_tostring(L, -1) : "Untitled";
