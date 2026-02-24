@@ -132,7 +132,7 @@ void font::draw(std::string_view text, float x, float y) const noexcept {
       continue;
     }
 
-    if (_vertex_count + 4 > max_font_vertices) break;
+    if (_vertex_count + 4 > _vertices.size()) break;
 
     const auto& g = _props[static_cast<uint8_t>(ch)];
     const auto base = static_cast<int>(_vertex_count);

@@ -3,5 +3,5 @@
 #include "common.hpp"
 
 namespace presenter {
-  void update(entt::registry& registry);
+  void render(entt::registry& registry, compositor& compositor);
 }

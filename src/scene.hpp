@@ -16,6 +16,7 @@ public:
   void on_leave();
 
 private:
+  compositor& _compositor;
   int _G;
   int _environment;
   int _pool;

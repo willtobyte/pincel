@@ -1,5 +1,4 @@
 #include "scene.hpp"
-#include "compositor.hpp"
 
 namespace {
 constexpr std::size_t lookup_capacity = 1024;
@@ -323,12 +322,12 @@ namespace {
   }
 }
 
-scene::scene(std::string_view name, compositor& compositor) {
+scene::scene(std::string_view name, compositor& compositor)
+    : _compositor(compositor) {
   lookup.reserve(lookup_capacity);
 
   _registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
   _registry.ctx().emplace<dirtable>();
-  _registry.ctx().emplace<::compositor*>(&compositor);
 
   luaL_newmetatable(L, "Object");
 
@@ -468,8 +467,7 @@ void scene::on_loop(float delta) {
 }
 
 void scene::on_draw() {
-  presenter::update(_registry);
-  _registry.ctx().get<compositor*>()->draw();
+  presenter::render(_registry, _compositor);
 }
 
 void scene::on_leave() {

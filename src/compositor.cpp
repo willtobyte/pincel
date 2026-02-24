@@ -10,7 +10,7 @@ compositor::compositor() {
     _atlases.emplace(id, atlas{name});
   }
 
-  for (auto q = 0uz; q < max_compositor_vertices / 4; ++q) {
+  for (auto q = 0uz; q < _vertices.size() / 4; ++q) {
     const auto base = static_cast<int>(q * 4);
     const auto idx = q * 6;
     _indices[idx + 0] = base;
@@ -23,12 +23,12 @@ compositor::compositor() {
 }
 
 void compositor::submit(const entry& entry) {
-  assert(_entry_count < max_entries && "entry count exceeds maximum");
+  assert(_entry_count < _entries.size() && "entry count exceeds maximum");
   _entries[_entry_count++] = entry;
 }
 
 void compositor::submit(std::span<const entry> entries) {
-  assert(_entry_count + entries.size() <= max_entries && "entry count exceeds maximum");
+  assert(_entry_count + entries.size() <= _entries.size() && "entry count exceeds maximum");
   std::copy(entries.begin(), entries.end(), _entries.begin() + static_cast<std::ptrdiff_t>(_entry_count));
   _entry_count += entries.size();
 }

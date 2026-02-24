@@ -2,12 +2,6 @@
 
 #include "common.hpp"
 
-namespace {
-  constexpr auto max_entries = 100000uz;
-  constexpr auto max_compositor_vertices = max_entries * 4;
-  constexpr auto max_compositor_indices = max_entries * 6;
-}
-
 class compositor final {
 public:
   struct entry {
@@ -26,9 +20,9 @@ public:
 
 private:
   std::unordered_map<entt::id_type, class atlas> _atlases;
-  std::array<entry, max_entries> _entries{};
+  std::array<entry, 4096> _entries{};
   std::size_t _entry_count{0};
-  std::array<SDL_Vertex, max_compositor_vertices> _vertices{};
+  std::array<SDL_Vertex, 4096 * 4> _vertices{};
   std::size_t _vertex_count{0};
-  std::array<int, max_compositor_indices> _indices{};
+  std::array<int, 4096 * 6> _indices{};
 };

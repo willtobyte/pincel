@@ -2,11 +2,6 @@
 
 #include "common.hpp"
 
-namespace {
-  constexpr auto max_keyframes = 16uz;
-  constexpr auto max_animations = 16uz;
-}
-
 struct alignas(8) keyframe final {
   uint32_t sprite{};
   uint32_t duration{};
@@ -15,7 +10,7 @@ struct alignas(8) keyframe final {
 static_assert(std::is_trivially_copyable_v<keyframe>);
 
 struct alignas(64) animation final {
-  std::array<keyframe, max_keyframes> keyframes{};
+  std::array<keyframe, 16> keyframes{};
   entt::id_type name{};
   entt::id_type next{};
   uint32_t count{};
@@ -25,7 +20,7 @@ struct alignas(64) animation final {
 static_assert(std::is_trivially_copyable_v<animation>);
 
 struct alignas(64) animatable final {
-  std::array<animation, max_animations> animations{};
+  std::array<animation, 16> animations{};
   uint32_t count{};
 };
 

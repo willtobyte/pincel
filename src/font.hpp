@@ -2,12 +2,6 @@
 
 #include "common.hpp"
 
-namespace {
-  constexpr auto max_glyphs = 256uz;
-  constexpr auto max_font_vertices = 1024uz;
-  constexpr auto max_font_indices = 1536uz;
-}
-
 struct alignas(32) glyphprops final {
   float u0, v0, u1, v1;
   float sw, sh;
@@ -38,9 +32,9 @@ private:
   float _fontheight{0.f};
   float _scale{1.f};
   std::string _glyphs;
-  std::array<glyphprops, max_glyphs> _props{};
-  mutable std::array<SDL_Vertex, max_font_vertices> _vertices{};
+  std::array<glyphprops, 256> _props{};
+  mutable std::array<SDL_Vertex, 1024> _vertices{};
   mutable std::size_t _vertex_count{0};
-  mutable std::array<int, max_font_indices> _indices{};
+  mutable std::array<int, 1536> _indices{};
   mutable std::size_t _index_count{0};
 };
