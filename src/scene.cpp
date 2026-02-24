@@ -4,18 +4,17 @@ namespace {
   struct entityproxy final {
     entt::registry* registry;
     entt::entity entity;
+    int object_ref{LUA_NOREF};
     char name[48];
 
-    entityproxy(entt::registry& registry, entt::entity entity, std::string_view name) noexcept
-        : registry(&registry), entity(entity), name{} {
+    entityproxy(entt::registry& registry, entt::entity entity, int object_ref, std::string_view name) noexcept
+        : registry(&registry), entity(entity), object_ref(object_ref), name{} {
       const auto length = std::min(name.size(), sizeof(this->name) - 1);
       std::copy_n(name.data(), length, this->name);
       this->name[length] = '\0';
     }
 
-    ~entityproxy() noexcept {
-      // std::println("[garbagecollector] {} collected", name);
-    }
+    ~entityproxy() noexcept = default;
   };
 
   entt::id_type hash(std::string_view value) {
@@ -62,6 +61,23 @@ namespace {
       lua_pushboolean(state, registry.get<transform>(entity).shown);
       return 1;
     }
+
+    assert(proxy->object_ref != LUA_NOREF && "entity must have an object ref");
+
+    lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
+    lua_getfield(state, -1, key.data());
+    lua_remove(state, -2);
+    if (!lua_isnil(state, -1))
+      return 1;
+    lua_pop(state, 1);
+
+    lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
+    const auto method = std::format("on_{}", key);
+    lua_getfield(state, -1, method.c_str());
+    lua_remove(state, -2);
+    if (lua_isfunction(state, -1))
+      return 1;
+    lua_pop(state, 1);
 
     return lua_pushnil(state), 1;
   }
@@ -112,11 +128,19 @@ namespace {
       return 0;
     }
 
-    return luaL_error(state, "unknown property '%s'", key.data());
+    assert(proxy->object_ref != LUA_NOREF && "entity must have an object ref");
+
+    lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
+    lua_pushvalue(state, 3);
+    lua_setfield(state, -2, key.data());
+    lua_pop(state, 1);
+    return 0;
   }
 
   int entity_gc(lua_State* state) {
     auto* proxy = static_cast<entityproxy*>(luaL_checkudata(state, 1, "Object"));
+    if (proxy->object_ref != LUA_NOREF)
+      luaL_unref(state, LUA_REGISTRYINDEX, proxy->object_ref);
     proxy->~entityproxy();
     return 0;
   }
@@ -214,7 +238,7 @@ namespace {
     else
       lua_pop(L, 1);
 
-    lua_pop(L, 1);
+    const auto object_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     registry.emplace<::animatable>(entity, animatable.animations, animatable.count);
     auto& scriptable = registry.emplace<::scriptable>(entity);
@@ -222,7 +246,7 @@ namespace {
 
     lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
     auto* memory = lua_newuserdata(L, sizeof(entityproxy));
-    new (memory) entityproxy(registry, entity, name);
+    new (memory) entityproxy(registry, entity, object_ref, name);
     luaL_getmetatable(L, "Object");
     lua_setmetatable(L, -2);
     lua_setfield(L, -2, name.data());
@@ -336,7 +360,8 @@ void scene::on_enter() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_enter");
   if (lua_isfunction(L, -1)) {
-    lua_pcall(L, 0, 0, 0);
+    if (lua_pcall(L, 0, 0, 0) != 0)
+      lua_pop(L, 1);
   } else {
     lua_pop(L, 1);
   }
@@ -358,7 +383,8 @@ void scene::on_loop(float delta) {
   lua_getfield(L, -1, "on_loop");
   if (lua_isfunction(L, -1)) {
     lua_pushnumber(L, static_cast<double>(delta));
-    lua_pcall(L, 1, 0, 0);
+    if (lua_pcall(L, 1, 0, 0) != 0)
+      lua_pop(L, 1);
   } else {
     lua_pop(L, 1);
   }
@@ -373,7 +399,8 @@ void scene::on_leave() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_leave");
   if (lua_isfunction(L, -1)) {
-    lua_pcall(L, 0, 0, 0);
+    if (lua_pcall(L, 0, 0, 0) != 0)
+      lua_pop(L, 1);
   } else {
     lua_pop(L, 1);
   }

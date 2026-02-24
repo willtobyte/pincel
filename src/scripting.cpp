@@ -6,6 +6,7 @@ void scripting::update(entt::registry& registry, float delta) {
 
     lua_rawgeti(L, LUA_REGISTRYINDEX, s.on_loop);
     lua_pushnumber(L, static_cast<double>(delta));
-    lua_pcall(L, 1, 0, 0);
+    if (lua_pcall(L, 1, 0, 0) != 0)
+      lua_pop(L, 1);
   }
 }
