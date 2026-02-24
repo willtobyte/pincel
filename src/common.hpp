@@ -34,7 +34,7 @@ extern lua_State* L;
 extern SDL_Renderer* renderer;
 extern ma_engine* audioengine;
 
-inline std::unordered_map<entt::id_type, std::string> lookup;
+extern std::unordered_map<entt::id_type, std::string> lookup;
 
 constexpr auto MAX_DELTA = 0.05f;
 
