@@ -202,57 +202,55 @@ namespace {
 
     animatable animatable{};
 
-    lua_pushnil(L);
-    while (lua_next(L, -2) != 0) {
-      const std::string_view key = lua_tostring(L, -2);
+    lua_getfield(L, -1, "atlas");
+    if (lua_isstring(L, -1))
+      renderable.atlas = hash(lua_tostring(L, -1));
+    lua_pop(L, 1);
 
-      if (key == "atlas") {
-        renderable.atlas = hash(lua_tostring(L, -1));
+    lua_getfield(L, -1, "animations");
+    if (lua_istable(L, -1)) {
+      lua_pushnil(L);
+      while (lua_next(L, -2) != 0) {
+        const std::string_view key = lua_tostring(L, -2);
+
+        struct animation a{};
+        a.name = hash(key);
+        lookup.emplace(a.name, key);
+
+        const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
+        for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
+          lua_rawgeti(L, -1, static_cast<int>(i));
+          assert(lua_istable(L, -1) && "keyframe must be a table");
+
+          lua_rawgeti(L, -1, 1);
+          a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
+          lua_pop(L, 1);
+
+          lua_rawgeti(L, -1, 2);
+          a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
+          lua_pop(L, 1);
+
+          ++a.count;
+          lua_pop(L, 1);
+        }
+
+        lua_getfield(L, -1, "next");
+        if (lua_isstring(L, -1))
+          a.next = hash(lua_tostring(L, -1));
         lua_pop(L, 1);
-        continue;
+
+        lua_getfield(L, -1, "once");
+        if (lua_isboolean(L, -1))
+          a.once = lua_toboolean(L, -1) != 0;
+        lua_pop(L, 1);
+
+        assert(animatable.count < animatable.animations.size() && "too many animations");
+        animatable.animations[animatable.count++] = a;
+
+        lua_pop(L, 1);
       }
-
-      if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        continue;
-      }
-
-      struct animation a{};
-      a.name = hash(key);
-      lookup.emplace(a.name, key);
-
-      const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
-      for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
-        lua_rawgeti(L, -1, static_cast<int>(i));
-        assert(lua_istable(L, -1) && "keyframe must be a table");
-
-        lua_rawgeti(L, -1, 1);
-        a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
-        lua_pop(L, 1);
-
-        lua_rawgeti(L, -1, 2);
-        a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
-        lua_pop(L, 1);
-
-        ++a.count;
-        lua_pop(L, 1);
-      }
-
-      lua_getfield(L, -1, "next");
-      if (lua_isstring(L, -1))
-        a.next = hash(lua_tostring(L, -1));
-      lua_pop(L, 1);
-
-      lua_getfield(L, -1, "once");
-      if (lua_isboolean(L, -1))
-        a.once = lua_toboolean(L, -1) != 0;
-      lua_pop(L, 1);
-
-      assert(animatable.count < animatable.animations.size() && "too many animations");
-      animatable.animations[animatable.count++] = a;
-
-      lua_pop(L, 1);
     }
+    lua_pop(L, 1);
 
     auto on_spawn_ref = LUA_NOREF;
     auto on_loop_ref = LUA_NOREF;
