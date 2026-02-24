@@ -8,7 +8,7 @@ struct alignas(64) transform final {
   float scale{1.0f};
   float angle{};
   uint8_t alpha{255};
-  bool visible{true};
+  bool shown{true};
 };
 
 static_assert(std::is_trivially_copyable_v<transform>);

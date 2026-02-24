@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 PROFILE := $(if $(profile),$(profile),default)
 BUILDTYPE := $(if $(buildtype),$(buildtype),Debug)
 SCENE := $(if $(SCENE),$(SCENE),prelude)
-CARTRIDGE := $(if $(CARTRIDGE),$(CARTRIDGE),../game)
+CARTRIDGE := $(if $(CARTRIDGE),$(CARTRIDGE),cartridge)
 NCPUS := $(shell sysctl -n hw.ncpu 2>/dev/null | awk '{print $$1 - 1}')
 
 .SHELLFLAGS := -eu -o pipefail -c

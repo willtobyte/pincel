@@ -3,9 +3,9 @@
 #include "common.hpp"
 
 namespace {
-  constexpr auto max_entries = 2048uz;
-  constexpr auto max_compositor_vertices = 8192uz;
-  constexpr auto max_compositor_indices = 12288uz;
+  constexpr auto max_entries = 100000uz;
+  constexpr auto max_compositor_vertices = max_entries * 4;
+  constexpr auto max_compositor_indices = max_entries * 6;
 }
 
 class compositor final {

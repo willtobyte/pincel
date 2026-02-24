@@ -54,7 +54,6 @@ void compositor::draw() {
       const auto hh = sprite.h * entry.scale * 0.5f;
       const auto color = SDL_FColor{1.0f, 1.0f, 1.0f, static_cast<float>(entry.alpha) / 255.0f};
 
-      assert(_vertex_count + 4 <= max_compositor_vertices && "vertex count exceeds maximum");
       _vertices[_vertex_count++] = SDL_Vertex{
         {-hw * entry.cosr - -hh * entry.sinr + entry.x, -hw * entry.sinr + -hh * entry.cosr + entry.y}, color, {sprite.u0, sprite.v0}};
       _vertices[_vertex_count++] = SDL_Vertex{
@@ -65,15 +64,13 @@ void compositor::draw() {
         {-hw * entry.cosr - +hh * entry.sinr + entry.x, -hw * entry.sinr + +hh * entry.cosr + entry.y}, color, {sprite.u0, sprite.v1}};
     }
 
-    const auto index_count = (_vertex_count / 4) * 6;
-
     SDL_RenderGeometry(
       renderer,
       atlas._texture.get(),
       _vertices.data(),
       static_cast<int>(_vertex_count),
       _indices.data(),
-      static_cast<int>(index_count)
+      static_cast<int>((_vertex_count / 4) * 6)
     );
   }
 

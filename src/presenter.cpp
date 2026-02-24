@@ -1,8 +1,11 @@
 #include "presenter.hpp"
 
 void presenter::update(entt::registry& registry, compositor& compositor) {
-  for (auto&& [entity, t, r, s] : registry.view<transform, renderable, sorteable>().each()) {
-    if (!t.visible || r.animation == 0) [[unlikely]] continue;
+  auto view = registry.view<transform, renderable, sorteable>();
+  view.use<sorteable>();
+
+  for (auto&& [entity, t, r, s] : view.each()) {
+    if (!t.shown || r.animation == 0) [[unlikely]] continue;
 
     compositor.submit({
       .atlas = r.atlas,
