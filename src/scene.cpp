@@ -410,6 +410,8 @@ scene::~scene() noexcept {
   luaL_unref(L, LUA_REGISTRYINDEX, _pool);
   luaL_unref(L, LUA_REGISTRYINDEX, _environment);
   luaL_unref(L, LUA_REGISTRYINDEX, _G);
+
+  lookup.clear();
 }
 
 void scene::on_enter() {
