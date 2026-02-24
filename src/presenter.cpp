@@ -13,7 +13,6 @@ void presenter::update(entt::registry& registry, compositor& compositor) {
       .cosr = lcos(t.angle),
       .sinr = lsin(t.angle),
       .alpha = t.alpha,
-      .z = s.z,
     });
   }
 }

@@ -1,52 +1,37 @@
 #include "font.hpp"
 
 font::font(std::string_view family) {
-  const auto meta = io::read(std::format("blobs/fonts/{}.meta", family));
-  const auto content = std::string_view(reinterpret_cast<const char*>(meta.data()), meta.size());
+  const auto filename = std::format("blobs/fonts/{}.lua", family);
+  const auto meta = io::read(filename);
+  const auto* data = reinterpret_cast<const char*>(meta.data());
+  const auto size = meta.size();
+  const auto label = std::format("@{}", filename);
 
-  auto position = 0uz;
-  while (position < content.size()) {
-    auto end = content.find('\n', position);
-    if (end == std::string_view::npos) end = content.size();
+  luaL_loadbuffer(L, data, size, label.c_str());
+  lua_pcall(L, 0, 1, 0);
+  assert(lua_istable(L, -1) && "font lua must return a table");
 
-    auto line = content.substr(position, end - position);
-    position = end + 1;
+  lua_getfield(L, -1, "glyphs");
+  assert(lua_isstring(L, -1) && "font lua must have a glyphs string");
+  _glyphs = lua_tostring(L, -1);
+  lua_pop(L, 1);
 
-    while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t'))
-      line.remove_suffix(1);
-    while (!line.empty() && (line.front() == ' ' || line.front() == '\t'))
-      line.remove_prefix(1);
+  lua_getfield(L, -1, "spacing");
+  if (lua_isnumber(L, -1))
+    _spacing = static_cast<int16_t>(lua_tonumber(L, -1));
+  lua_pop(L, 1);
 
-    if (line.empty() || line.front() == '#') continue;
+  lua_getfield(L, -1, "leading");
+  if (lua_isnumber(L, -1))
+    _leading = static_cast<int16_t>(lua_tonumber(L, -1));
+  lua_pop(L, 1);
 
-    const auto eq = line.find('=');
-    if (eq == std::string_view::npos) continue;
+  lua_getfield(L, -1, "scale");
+  if (lua_isnumber(L, -1))
+    _scale = static_cast<float>(lua_tonumber(L, -1));
+  lua_pop(L, 1);
 
-    auto key = line.substr(0, eq);
-    auto value = line.substr(eq + 1);
-
-    while (!key.empty() && (key.back() == ' ' || key.back() == '\t'))
-      key.remove_suffix(1);
-
-    if (key == "glyphs") {
-      _glyphs = value;
-    } else {
-      while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
-        value.remove_prefix(1);
-
-      if (key == "spacing") {
-        int16_t v;
-        std::from_chars(value.data(), value.data() + value.size(), v);
-        _spacing = v;
-      } else if (key == "leading") {
-        int16_t v;
-        std::from_chars(value.data(), value.data() + value.size(), v);
-        _leading = v;
-      } else if (key == "scale") {
-        _scale = std::strtof(value.data(), nullptr);
-      }
-    }
-  }
+  lua_pop(L, 1);
 
   const auto png = io::read(std::format("blobs/fonts/{}.png", family));
 

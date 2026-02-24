@@ -51,8 +51,6 @@ engine::engine() {
 
   renderer = SDL_CreateRendererWithProperties(properties);
 
-  SDL_DestroyProperties(properties);
-
   SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_LETTERBOX);
   SDL_SetRenderScale(renderer, scale, scale);
 

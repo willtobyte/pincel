@@ -33,51 +33,51 @@ atlas::atlas(std::string_view name) {
   SDL_SetTextureScaleMode(_texture.get(), SDL_SCALEMODE_NEAREST);
   SDL_SetTextureBlendMode(_texture.get(), SDL_BLENDMODE_BLEND);
 
-  const auto text = io::read(std::format("blobs/atlas/{}.meta", name));
-  const auto content = std::string_view(reinterpret_cast<const char*>(text.data()), text.size());
-
   const auto fw = static_cast<float>(tw);
   const auto fh = static_cast<float>(th);
 
-  auto position = 0uz;
-  while (position < content.size()) {
-    auto end = content.find('\n', position);
-    if (end == std::string_view::npos) end = content.size();
+  const auto filename = std::format("blobs/atlas/{}.lua", name);
+  const auto buffer = io::read(filename);
+  const auto* data = reinterpret_cast<const char*>(buffer.data());
+  const auto size = buffer.size();
+  const auto label = std::format("@{}", filename);
 
-    auto line = content.substr(position, end - position);
-    position = end + 1;
+  luaL_loadbuffer(L, data, size, label.c_str());
+  lua_pcall(L, 0, 1, 0);
+  assert(lua_istable(L, -1) && "atlas lua must return a table");
 
-    if (const auto comment = line.find("--"); comment != std::string_view::npos)
-      line = line.substr(0, comment);
+  const auto count = static_cast<uint32_t>(lua_objlen(L, -1));
+  for (uint32_t i = 1; i <= count; ++i) {
+    lua_rawgeti(L, -1, static_cast<int>(i));
+    assert(lua_istable(L, -1) && "sprite entry must be a table");
 
-    while (!line.empty() && (line.front() == ' ' || line.front() == '\t'))
-      line.remove_prefix(1);
-    while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r'))
-      line.remove_suffix(1);
+    lua_rawgeti(L, -1, 1);
+    const auto x = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
 
-    if (line.empty()) continue;
+    lua_rawgeti(L, -1, 2);
+    const auto y = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
 
-    int x, y, w, h;
-    auto cursor = line.data();
-    const auto* const fence = line.data() + line.size();
+    lua_rawgeti(L, -1, 3);
+    const auto w = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
 
-    const auto [p1, e1] = std::from_chars(cursor, fence, x);
-    assert(e1 == std::errc{} && *p1 == ',' && "failed to parse x in atlas entry");
-    const auto [p2, e2] = std::from_chars(p1 + 1, fence, y);
-    assert(e2 == std::errc{} && *p2 == ',' && "failed to parse y in atlas entry");
-    const auto [p3, e3] = std::from_chars(p2 + 1, fence, w);
-    assert(e3 == std::errc{} && *p3 == ',' && "failed to parse w in atlas entry");
-    const auto [p4, e4] = std::from_chars(p3 + 1, fence, h);
-    assert(e4 == std::errc{} && "failed to parse h in atlas entry");
+    lua_rawgeti(L, -1, 4);
+    const auto h = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
 
-    assert(_sprite_count < max_sprites && "sprite count exceeds maximum");
     _sprites[_sprite_count++] = sprite{
-      .u0 = static_cast<float>(x) / fw,
-      .v0 = static_cast<float>(y) / fh,
-      .u1 = static_cast<float>(x + w) / fw,
-      .v1 = static_cast<float>(y + h) / fh,
-      .w = static_cast<float>(w),
-      .h = static_cast<float>(h),
+      .u0 = x / fw,
+      .v0 = y / fh,
+      .u1 = (x + w) / fw,
+      .v1 = (y + h) / fh,
+      .w = w,
+      .h = h,
     };
+
+    lua_pop(L, 1);
   }
+
+  lua_pop(L, 1);
 }

@@ -3,12 +3,12 @@
 #include "common.hpp"
 
 namespace {
-  constexpr auto max_sprites = 2048uz;
+  constexpr auto max_sprites = 4096uz;
 }
 
 class atlas final {
 public:
-  struct sprite {
+  struct alignas(8) sprite final {
     float u0, v0, u1, v1;
     float w, h;
   };

@@ -15,7 +15,6 @@ public:
     int index;
     float x, y, scale, cosr, sinr;
     uint8_t alpha;
-    int16_t z{};
   };
 
   compositor();
@@ -32,5 +31,4 @@ private:
   std::array<SDL_Vertex, max_compositor_vertices> _vertices{};
   std::size_t _vertex_count{0};
   std::array<int, max_compositor_indices> _indices{};
-  std::size_t _index_count{0};
 };
