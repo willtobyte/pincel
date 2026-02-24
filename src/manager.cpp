@@ -45,5 +45,4 @@ void manager::draw() {
   if (!_active) return;
 
   _active->on_draw();
-  _compositor->draw();
 }
