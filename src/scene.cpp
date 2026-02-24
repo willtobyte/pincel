@@ -62,6 +62,15 @@ namespace {
       return 1;
     }
 
+    if (key == "animation") {
+      const auto& r = registry.get<renderable>(entity);
+      const auto it = lookup.find(r.animation);
+      if (it == lookup.end())
+        return lua_pushnil(state), 1;
+      lua_pushstring(state, it->second.c_str());
+      return 1;
+    }
+
     assert(proxy->object_ref != LUA_NOREF && "entity must have an object ref");
 
     lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
@@ -130,7 +139,10 @@ namespace {
 
     if (key == "animation") {
       auto& r = registry.get<renderable>(entity);
-      r.animation = hash(luaL_checkstring(state, 3));
+      const auto name = luaL_checkstring(state, 3);
+      const auto id = hash(name);
+      r.animation = id;
+      lookup.emplace(id, name);
       r.current_frame = 0;
       r.counter = 0;
       return 0;
@@ -207,6 +219,7 @@ namespace {
 
       struct animation a{};
       a.name = hash(key);
+      lookup.emplace(a.name, key);
 
       const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
       for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
@@ -241,7 +254,15 @@ namespace {
       lua_pop(L, 1);
     }
 
+    auto on_spawn_ref = LUA_NOREF;
     auto on_loop_ref = LUA_NOREF;
+    auto on_animation_end_ref = LUA_NOREF;
+
+    lua_getfield(L, -1, "on_spawn");
+    if (lua_isfunction(L, -1))
+      on_spawn_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    else
+      lua_pop(L, 1);
 
     lua_getfield(L, -1, "on_loop");
     if (lua_isfunction(L, -1))
@@ -249,11 +270,19 @@ namespace {
     else
       lua_pop(L, 1);
 
+    lua_getfield(L, -1, "on_animation_end");
+    if (lua_isfunction(L, -1))
+      on_animation_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    else
+      lua_pop(L, 1);
+
     const auto object_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     registry.emplace<::animatable>(entity, animatable.animations, animatable.count);
     auto& scriptable = registry.emplace<::scriptable>(entity);
+    scriptable.on_spawn = on_spawn_ref;
     scriptable.on_loop = on_loop_ref;
+    scriptable.on_animation_end = on_animation_end_ref;
 
     lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
     auto* memory = lua_newuserdata(L, sizeof(entityproxy));
@@ -264,12 +293,26 @@ namespace {
     scriptable.self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     lua_setfield(L, -2, name.data());
     lua_pop(L, 1);
+
+    if (on_spawn_ref != LUA_NOREF) {
+      lua_rawgeti(L, LUA_REGISTRYINDEX, on_spawn_ref);
+      lua_rawgeti(L, LUA_REGISTRYINDEX, scriptable.self_ref);
+      if (lua_pcall(L, 1, 0, 0) != 0) {
+        std::string error = lua_tostring(L, -1);
+        lua_pop(L, 1);
+        throw std::runtime_error(error);
+      }
+    }
   }
 
   void on_destroy_scriptable(entt::registry& registry, entt::entity entity) {
     auto& scriptable = registry.get<::scriptable>(entity);
+    if (scriptable.on_spawn != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_spawn);
     if (scriptable.on_loop != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_loop);
+    if (scriptable.on_animation_end != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_animation_end);
     if (scriptable.self_ref != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, scriptable.self_ref);
   }

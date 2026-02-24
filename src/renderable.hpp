@@ -7,6 +7,8 @@ namespace {
   constexpr auto max_animations = 16uz;
 }
 
+inline std::unordered_map<entt::id_type, std::string> lookup;
+
 struct alignas(8) keyframe final {
   uint32_t sprite{};
   uint32_t duration{};
