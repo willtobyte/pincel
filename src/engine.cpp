@@ -4,14 +4,6 @@ lua_State *L = nullptr;
 ma_engine *audioengine = nullptr;
 SDL_Renderer *renderer = nullptr;
 
-namespace {
-constexpr std::size_t lookup_capacity = 1024;
-}
-
-std::unordered_map<entt::id_type, std::string> lookup;
-
-engine::~engine() = default;
-
 engine::engine() {
   const auto buffer = io::read("scripts/main.lua");
   const auto *data = reinterpret_cast<const char *>(buffer.data());
@@ -72,8 +64,6 @@ engine::engine() {
   lua_pushinteger(L, height);
   lua_setfield(L, -2, "height");
   lua_setglobal(L, "viewport");
-
-  lookup.reserve(lookup_capacity);
 
   _manager = std::make_unique<manager>();
   _manager->set("test");

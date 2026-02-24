@@ -7,7 +7,7 @@ class manager;
 class engine final {
 public:
   engine();
-  ~engine();
+  ~engine() = default;
 
   void run();
 

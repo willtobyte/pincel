@@ -1,6 +1,8 @@
 #include "animator.hpp"
 #include "scriptable.hpp"
 
+extern std::unordered_map<entt::id_type, std::string> lookup;
+
 namespace {
   const animation* find(const animatable& a, entt::id_type name) {
     for (uint32_t i = 0; i < a.count; ++i) {

@@ -1,6 +1,12 @@
 #include "scene.hpp"
 
 namespace {
+constexpr std::size_t lookup_capacity = 1024;
+}
+
+std::unordered_map<entt::id_type, std::string> lookup;
+
+namespace {
   struct entityproxy final {
     entt::registry* registry;
     entt::entity entity;
@@ -318,6 +324,8 @@ namespace {
 
 scene::scene(std::string_view name, compositor& compositor)
     : _compositor(compositor) {
+  lookup.reserve(lookup_capacity);
+
   _registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
   _registry.ctx().emplace<dirtable>();
 
