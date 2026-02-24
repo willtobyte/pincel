@@ -4,6 +4,7 @@
 
 struct alignas(64) scriptable final {
   int on_loop{LUA_NOREF};
+  int self_ref{LUA_NOREF};
 };
 
 static_assert(std::is_trivially_copyable_v<scriptable>);

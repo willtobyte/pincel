@@ -128,6 +128,14 @@ namespace {
       return 0;
     }
 
+    if (key == "animation") {
+      auto& r = registry.get<renderable>(entity);
+      r.animation = hash(luaL_checkstring(state, 3));
+      r.current_frame = 0;
+      r.counter = 0;
+      return 0;
+    }
+
     assert(proxy->object_ref != LUA_NOREF && "entity must have an object ref");
 
     lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
@@ -252,6 +260,8 @@ namespace {
     new (memory) entityproxy(registry, entity, object_ref, name);
     luaL_getmetatable(L, "Object");
     lua_setmetatable(L, -2);
+    lua_pushvalue(L, -1);
+    scriptable.self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     lua_setfield(L, -2, name.data());
     lua_pop(L, 1);
   }
@@ -260,6 +270,8 @@ namespace {
     auto& scriptable = registry.get<::scriptable>(entity);
     if (scriptable.on_loop != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_loop);
+    if (scriptable.self_ref != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.self_ref);
   }
 }
 
