@@ -8,6 +8,7 @@ public:
     float u0, v0, u1, v1;
     float w, h;
     float hx{}, hy{}, hw{}, hh{};
+    bool has_hitbox() const { return hw > 0 && hh > 0; }
   };
 
   atlas() = delete;
@@ -22,5 +23,4 @@ private:
 
   std::unique_ptr<SDL_Texture, SDL_Deleter> _texture;
   std::vector<sprite> _sprites;
-  bool _has_hitbox{};
 };

@@ -412,11 +412,12 @@ void object::create(
   scriptable.on_screen_exit = on_screen_exit_ref;
   scriptable.on_screen_enter = on_screen_enter_ref;
 
-  if (compositor.has_hitbox(r.atlas)) {
+  const auto* s = compositor.get_sprite(r.atlas, static_cast<int>(r.sprite));
+  if (s && s->has_hitbox()) {
     auto def = b2DefaultBodyDef();
     def.type = b2_dynamicBody;
     def.fixedRotation = true;
-    def.gravityScale = 0.0f;
+    def.gravityScale = .0f;
     def.position = {x, y};
     def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
 
@@ -471,14 +472,16 @@ void object::sync_collision(entt::registry& registry, compositor& compositor) {
     const auto oy = -sh * .5f + shy + shh * .5f;
 
     if (shw != c.hw || shh != c.hh || shx != c.hx || shy != c.hy) {
-      detach_shape(c);
-
       const auto poly = b2MakeBox(shw * .5f, shh * .5f);
-      auto def = b2DefaultShapeDef();
-      def.isSensor = true;
-      def.enableSensorEvents = true;
-      def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
-      c.shape = b2CreatePolygonShape(c.body, &def, &poly);
+      if (b2Shape_IsValid(c.shape)) {
+        b2Shape_SetPolygon(c.shape, &poly);
+      } else {
+        auto def = b2DefaultShapeDef();
+        def.isSensor = true;
+        def.enableSensorEvents = true;
+        def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
+        c.shape = b2CreatePolygonShape(c.body, &def, &poly);
+      }
       c.hx = shx;
       c.hy = shy;
       c.hw = shw;

@@ -108,7 +108,6 @@ atlas::atlas(std::string_view name) {
       s.hh = static_cast<float>(lua_tonumber(L, -1));
       lua_pop(L, 1);
 
-      _has_hitbox = true;
     }
 
     lua_pop(L, 1);

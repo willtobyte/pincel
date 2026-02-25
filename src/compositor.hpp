@@ -19,7 +19,6 @@ public:
   void draw();
 
   const atlas::sprite* get_sprite(entt::id_type atlas_id, int index) const;
-  bool has_hitbox(entt::id_type atlas_id) const;
 
 private:
   std::unordered_map<entt::id_type, class atlas> _atlases;

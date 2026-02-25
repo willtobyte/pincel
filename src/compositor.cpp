@@ -44,13 +44,6 @@ const atlas::sprite* compositor::get_sprite(entt::id_type atlas_id, int index) c
   return &a._sprites[static_cast<size_t>(index)];
 }
 
-bool compositor::has_hitbox(entt::id_type atlas_id) const {
-  const auto it = _atlases.find(atlas_id);
-  if (it == _atlases.end()) return false;
-
-  return it->second._has_hitbox;
-}
-
 void compositor::draw() {
   if (_entries.empty()) [[unlikely]] return;
 

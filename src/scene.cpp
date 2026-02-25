@@ -19,7 +19,7 @@ namespace {
   void dispatch_sensor_events(b2WorldId world, entt::registry& registry) {
     const auto events = b2World_GetSensorEvents(world);
 
-    for (int i = 0; i < events.beginCount; ++i) {
+    for (auto i = 0; i < events.beginCount; ++i) {
       const auto& e = events.beginEvents[i];
       assert(b2Shape_IsValid(e.sensorShapeId) && "sensor shape must be valid");
       assert(b2Shape_IsValid(e.visitorShapeId) && "visitor shape must be valid");
@@ -27,13 +27,9 @@ namespace {
       const auto a = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.sensorShapeId)));
       const auto b = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.visitorShapeId)));
 
-      const auto& id_a = registry.get<identifiable>(a);
       const auto& id_b = registry.get<identifiable>(b);
       const auto& s_a = registry.get<scriptable>(a);
-      const auto& s_b = registry.get<scriptable>(b);
 
-      const auto& name_a = lookup.at(id_a.name);
-      const auto& kind_a = lookup.at(id_a.kind);
       const auto& name_b = lookup.at(id_b.name);
       const auto& kind_b = lookup.at(id_b.kind);
 
@@ -42,18 +38,6 @@ namespace {
         lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.self_ref);
         lua_pushstring(L, name_b.c_str());
         lua_pushstring(L, kind_b.c_str());
-        if (lua_pcall(L, 3, 0, 0) != 0) {
-          std::string error = lua_tostring(L, -1);
-          lua_pop(L, 1);
-          throw std::runtime_error(error);
-        }
-      }
-
-      if (s_b.on_collision != LUA_NOREF) {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.on_collision);
-        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.self_ref);
-        lua_pushstring(L, name_a.c_str());
-        lua_pushstring(L, kind_a.c_str());
         if (lua_pcall(L, 3, 0, 0) != 0) {
           std::string error = lua_tostring(L, -1);
           lua_pop(L, 1);
@@ -70,13 +54,9 @@ namespace {
       const auto a = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.sensorShapeId)));
       const auto b = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.visitorShapeId)));
 
-      const auto& id_a = registry.get<identifiable>(a);
       const auto& id_b = registry.get<identifiable>(b);
       const auto& s_a = registry.get<scriptable>(a);
-      const auto& s_b = registry.get<scriptable>(b);
 
-      const auto& name_a = lookup.at(id_a.name);
-      const auto& kind_a = lookup.at(id_a.kind);
       const auto& name_b = lookup.at(id_b.name);
       const auto& kind_b = lookup.at(id_b.kind);
 
@@ -85,18 +65,6 @@ namespace {
         lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.self_ref);
         lua_pushstring(L, name_b.c_str());
         lua_pushstring(L, kind_b.c_str());
-        if (lua_pcall(L, 3, 0, 0) != 0) {
-          std::string error = lua_tostring(L, -1);
-          lua_pop(L, 1);
-          throw std::runtime_error(error);
-        }
-      }
-
-      if (s_b.on_collision_end != LUA_NOREF) {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.on_collision_end);
-        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.self_ref);
-        lua_pushstring(L, name_a.c_str());
-        lua_pushstring(L, kind_a.c_str());
         if (lua_pcall(L, 3, 0, 0) != 0) {
           std::string error = lua_tostring(L, -1);
           lua_pop(L, 1);
@@ -227,7 +195,6 @@ void scene::on_loop(float delta) {
 
   animator::update(_registry, delta);
   object::sync_collision(_registry, _compositor);
-
   scripting::update(_registry, delta);
 
   for (auto&& [entity, s, c] : _registry.view<scriptable, collidable>().each()) {
