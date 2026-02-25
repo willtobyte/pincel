@@ -3,7 +3,7 @@ return {
     walk = { { 0, 200 }, { 1, 200 } },
   },
 
-  atlas = "char",
+  atlas = "world",
 
   on_spawn = function(self)
     self.health = 100
