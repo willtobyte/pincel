@@ -23,8 +23,7 @@ scene::scene(std::string_view name, compositor& compositor)
   def.gravity = {0.0f, 0.0f};
   _world = b2CreateWorld(&def);
 
-  object::register_metatable();
-  object::connect_signals(_registry);
+  object::setup(_registry);
   _registry.ctx().emplace<dirtable>();
 
   lua_pushvalue(L, LUA_GLOBALSINDEX);
@@ -192,7 +191,7 @@ void scene::on_loop(float delta) {
   }
 
   animator::update(_registry, delta);
-  object::sync_collision(_registry, _compositor);
+  object::update(_registry, _compositor);
   scripting::update(_registry, delta);
 
   for (auto&& [entity, s, c] : _registry.view<scriptable, collidable>().each()) {

@@ -12,8 +12,8 @@
 namespace {
   constexpr std::size_t lookup_capacity = 1024;
 
-  constexpr int keyframe_sprite = 1;
-  constexpr int keyframe_duration = 2;
+  constexpr int field_sprite = 1;
+  constexpr int field_duration = 2;
 
   struct objectproxy final {
     entt::registry* registry;
@@ -247,9 +247,33 @@ namespace {
     if (c)
       b2DestroyBody(c->body);
   }
+
+  void wire() {
+    luaL_newmetatable(L, "Object");
+
+    lua_pushcfunction(L, object_index);
+    lua_setfield(L, -2, "__index");
+
+    lua_pushcfunction(L, object_newindex);
+    lua_setfield(L, -2, "__newindex");
+
+    lua_pushcfunction(L, object_gc);
+    lua_setfield(L, -2, "__gc");
+
+    lua_pop(L, 1);
+
+    lookup.reserve(lookup_capacity);
+  }
 }
 
 std::unordered_map<entt::id_type, std::string> lookup;
+
+void object::setup(entt::registry& registry) {
+  static std::once_flag once;
+  std::call_once(once, wire);
+
+  registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
+}
 
 void object::create(
   entt::registry& registry,
@@ -307,11 +331,11 @@ void object::create(
       lua_rawgeti(L, -1, static_cast<int>(i));
       assert(lua_istable(L, -1) && "keyframe must be a table");
 
-      lua_rawgeti(L, -1, keyframe_sprite);
+      lua_rawgeti(L, -1, field_sprite);
       a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
       lua_pop(L, 1);
 
-      lua_rawgeti(L, -1, keyframe_duration);
+      lua_rawgeti(L, -1, field_duration);
       a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
       lua_pop(L, 1);
 
@@ -447,28 +471,7 @@ void object::create(
   }
 }
 
-void object::register_metatable() {
-  luaL_newmetatable(L, "Object");
-
-  lua_pushcfunction(L, object_index);
-  lua_setfield(L, -2, "__index");
-
-  lua_pushcfunction(L, object_newindex);
-  lua_setfield(L, -2, "__newindex");
-
-  lua_pushcfunction(L, object_gc);
-  lua_setfield(L, -2, "__gc");
-
-  lua_pop(L, 1);
-
-  lookup.reserve(lookup_capacity);
-}
-
-void object::connect_signals(entt::registry& registry) {
-  registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
-}
-
-void object::sync_collision(entt::registry& registry, compositor& compositor) {
+void object::update(entt::registry& registry, compositor& compositor) {
   for (auto&& [entity, t, r, c] : registry.view<transform, renderable, collidable>().each()) {
     const auto* sprite = compositor.get_sprite(r.atlas, static_cast<int>(r.sprite));
 

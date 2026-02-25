@@ -5,6 +5,8 @@
 extern std::unordered_map<entt::id_type, std::string> lookup;
 
 namespace object {
+  void setup(entt::registry& registry);
+
   void create(
     entt::registry& registry,
     b2WorldId world,
@@ -18,7 +20,5 @@ namespace object {
     std::string_view initial_animation
   );
 
-  void register_metatable();
-  void connect_signals(entt::registry& registry);
-  void sync_collision(entt::registry& registry, compositor& compositor);
+  void update(entt::registry& registry, compositor& compositor);
 }
