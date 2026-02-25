@@ -16,6 +16,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 #include <box2d/box2d.h>
 #include <entt/entt.hpp>

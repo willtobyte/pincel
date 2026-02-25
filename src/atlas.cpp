@@ -82,7 +82,7 @@ atlas::atlas(std::string_view name) {
     const auto h = static_cast<float>(lua_tonumber(L, -1));
     lua_pop(L, 1);
 
-    auto& s = _sprites[_sprite_count++];
+    auto& s = _sprites.emplace_back();
     s.u0 = x / fw;
     s.v0 = y / fh;
     s.u1 = (x + w) / fw;

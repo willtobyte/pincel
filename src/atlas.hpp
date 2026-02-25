@@ -21,7 +21,6 @@ private:
   friend class ::compositor;
 
   std::unique_ptr<SDL_Texture, SDL_Deleter> _texture;
-  std::array<sprite, 4096> _sprites{};
-  std::size_t _sprite_count{0};
+  std::vector<sprite> _sprites;
   bool _has_hitbox{};
 };
