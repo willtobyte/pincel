@@ -3,6 +3,7 @@
 lua_State *L = nullptr;
 ma_engine *audioengine = nullptr;
 SDL_Renderer *renderer = nullptr;
+struct viewport viewport{};
 
 engine::engine() {
   const auto buffer = io::read("scripts/main.lua");
@@ -64,6 +65,8 @@ engine::engine() {
   lua_pushinteger(L, height);
   lua_setfield(L, -2, "height");
   lua_setglobal(L, "viewport");
+
+  viewport = {static_cast<float>(width), static_cast<float>(height)};
 
   _manager = std::make_unique<manager>();
   _manager->set("test");

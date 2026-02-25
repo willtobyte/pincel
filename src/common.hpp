@@ -34,6 +34,13 @@ extern lua_State* L;
 extern SDL_Renderer* renderer;
 extern ma_engine* audioengine;
 
+struct viewport {
+  float width;
+  float height;
+};
+
+extern struct viewport viewport;
+
 constexpr auto MAX_DELTA = 0.05f;
 
 #include "helper.hpp"

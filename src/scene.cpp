@@ -324,6 +324,10 @@ namespace {
 
 scene::scene(std::string_view name, compositor& compositor)
     : _compositor(compositor) {
+  b2WorldDef def = b2DefaultWorldDef();
+  def.gravity = {0.0f, 0.0f};
+  _world = b2CreateWorld(&def);
+
   lookup.reserve(lookup_capacity);
 
   _registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
@@ -414,6 +418,8 @@ scene::scene(std::string_view name, compositor& compositor)
 }
 
 scene::~scene() noexcept {
+  b2DestroyWorld(_world);
+
   luaL_unref(L, LUA_REGISTRYINDEX, _table);
   luaL_unref(L, LUA_REGISTRYINDEX, _pool);
   luaL_unref(L, LUA_REGISTRYINDEX, _environment);
@@ -468,6 +474,27 @@ void scene::on_loop(float delta) {
 
 void scene::on_draw() {
   presenter::render(_registry, _compositor);
+
+#ifdef DEVELOPMENT
+  SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+  const b2AABB aabb = {{0, 0}, {viewport.width, viewport.height}};
+  const b2QueryFilter filter = b2DefaultQueryFilter();
+
+  b2World_OverlapAABB(_world, aabb, filter, [](b2ShapeId shape, void*) -> bool {
+    const auto box = b2Shape_GetAABB(shape);
+    const SDL_FRect r{
+      box.lowerBound.x,
+      box.lowerBound.y,
+      box.upperBound.x - box.lowerBound.x,
+      box.upperBound.y - box.lowerBound.y
+    };
+    SDL_RenderRect(renderer, &r);
+    return true;
+  }, nullptr);
+
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+#endif
 }
 
 void scene::on_leave() {
