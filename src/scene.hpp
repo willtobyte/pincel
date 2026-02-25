@@ -23,5 +23,6 @@ private:
   int _table;
   entt::registry _registry;
   b2WorldId _world;
+  float _accumulator{};
   int16_t _next_z{};
 };

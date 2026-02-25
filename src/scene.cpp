@@ -1,324 +1,14 @@
 #include "scene.hpp"
+#include "object.hpp"
+#include "dirtable.hpp"
+#include "sorteable.hpp"
 
 namespace {
-constexpr std::size_t lookup_capacity = 1024;
-}
-
-std::unordered_map<entt::id_type, std::string> lookup;
-
-namespace {
-  struct entityproxy final {
-    entt::registry* registry;
-    entt::entity entity;
-    int object_ref{LUA_NOREF};
-    char name[48];
-
-    entityproxy(entt::registry& registry, entt::entity entity, int object_ref, std::string_view name) noexcept
-        : registry(&registry), entity(entity), object_ref(object_ref), name{} {
-      const auto length = std::min(name.size(), sizeof(this->name) - 1);
-      std::copy_n(name.data(), length, this->name);
-      this->name[length] = '\0';
-    }
-
-    ~entityproxy() noexcept = default;
-  };
-
-  entt::id_type hash(std::string_view value) {
-    return entt::hashed_string::value(value.data(), value.size());
-  }
-
-  int entity_index(lua_State* state) {
-    auto* proxy = static_cast<entityproxy*>(luaL_checkudata(state, 1, "Object"));
-    const std::string_view key = luaL_checkstring(state, 2);
-    auto& registry = *proxy->registry;
-    const auto entity = proxy->entity;
-
-    if (key == "x") {
-      lua_pushnumber(state, static_cast<double>(registry.get<transform>(entity).x));
-      return 1;
-    }
-
-    if (key == "y") {
-      lua_pushnumber(state, static_cast<double>(registry.get<transform>(entity).y));
-      return 1;
-    }
-
-    if (key == "z") {
-      lua_pushnumber(state, static_cast<double>(registry.get<sorteable>(entity).z));
-      return 1;
-    }
-
-    if (key == "scale") {
-      lua_pushnumber(state, static_cast<double>(registry.get<transform>(entity).scale));
-      return 1;
-    }
-
-    if (key == "angle") {
-      lua_pushnumber(state, static_cast<double>(registry.get<transform>(entity).angle));
-      return 1;
-    }
-
-    if (key == "alpha") {
-      lua_pushnumber(state, static_cast<double>(registry.get<transform>(entity).alpha));
-      return 1;
-    }
-
-    if (key == "shown") {
-      lua_pushboolean(state, registry.get<transform>(entity).shown);
-      return 1;
-    }
-
-    if (key == "animation") {
-      const auto& r = registry.get<renderable>(entity);
-      const auto it = lookup.find(r.animation);
-      if (it == lookup.end())
-        return lua_pushnil(state), 1;
-      lua_pushstring(state, it->second.c_str());
-      return 1;
-    }
-
-    assert(proxy->object_ref != LUA_NOREF && "entity must have an object ref");
-
-    lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
-    lua_getfield(state, -1, key.data());
-    lua_remove(state, -2);
-    if (!lua_isnil(state, -1))
-      return 1;
-    lua_pop(state, 1);
-
-    lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
-    const auto method = std::format("on_{}", key);
-    lua_getfield(state, -1, method.c_str());
-    lua_remove(state, -2);
-    if (lua_isfunction(state, -1))
-      return 1;
-    lua_pop(state, 1);
-
-    return lua_pushnil(state), 1;
-  }
-
-  int entity_newindex(lua_State* state) {
-    auto* proxy = static_cast<entityproxy*>(luaL_checkudata(state, 1, "Object"));
-    const std::string_view key = luaL_checkstring(state, 2);
-    auto& registry = *proxy->registry;
-    const auto entity = proxy->entity;
-
-    if (key == "x") {
-      registry.get<transform>(entity).x = static_cast<float>(luaL_checknumber(state, 3));
-      return 0;
-    }
-
-    if (key == "y") {
-      registry.get<transform>(entity).y = static_cast<float>(luaL_checknumber(state, 3));
-      return 0;
-    }
-
-    if (key == "z") {
-      auto& sorteable = registry.get<::sorteable>(entity);
-      const auto value = static_cast<int16_t>(luaL_checknumber(state, 3));
-      if (sorteable.z != value) {
-        sorteable.z = value;
-        registry.ctx().get<dirtable>().mark(dirtable::sort);
-      }
-      return 0;
-    }
-
-    if (key == "scale") {
-      registry.get<transform>(entity).scale = static_cast<float>(luaL_checknumber(state, 3));
-      return 0;
-    }
-
-    if (key == "angle") {
-      registry.get<transform>(entity).angle = static_cast<float>(luaL_checknumber(state, 3));
-      return 0;
-    }
-
-    if (key == "alpha") {
-      registry.get<transform>(entity).alpha = static_cast<uint8_t>(luaL_checknumber(state, 3));
-      return 0;
-    }
-
-    if (key == "shown") {
-      registry.get<transform>(entity).shown = lua_toboolean(state, 3) != 0;
-      return 0;
-    }
-
-    if (key == "animation") {
-      auto& r = registry.get<renderable>(entity);
-      const auto name = luaL_checkstring(state, 3);
-      const auto id = hash(name);
-      r.animation = id;
-      lookup.emplace(id, name);
-      r.current_frame = 0;
-      r.counter = 0;
-      return 0;
-    }
-
-    assert(proxy->object_ref != LUA_NOREF && "entity must have an object ref");
-
-    lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
-    lua_pushvalue(state, 3);
-    lua_setfield(state, -2, key.data());
-    lua_pop(state, 1);
-    return 0;
-  }
-
-  int entity_gc(lua_State* state) {
-    auto* proxy = static_cast<entityproxy*>(luaL_checkudata(state, 1, "Object"));
-    if (proxy->object_ref != LUA_NOREF)
-      luaL_unref(state, LUA_REGISTRYINDEX, proxy->object_ref);
-    proxy->~entityproxy();
-    return 0;
-  }
+  constexpr auto fixed_timestep = 1.0f / 60.0f;
+  constexpr auto world_substeps = 4;
 
   bool by_depth(const sorteable& a, const sorteable& b) {
     return a.z < b.z;
-  }
-
-  void create_object(
-    entt::registry& registry,
-    int pool,
-    int16_t z,
-    std::string_view name,
-    std::string_view kind,
-    float x,
-    float y,
-    std::string_view animation
-  ) {
-    const auto entity = registry.create();
-    registry.emplace<sorteable>(entity, sorteable{z});
-    auto& renderable = registry.emplace<::renderable>(entity);
-    registry.emplace<transform>(entity, x, y);
-
-    if (!animation.empty())
-      renderable.animation = hash(animation);
-
-    const auto filename = std::format("objects/{}.lua", kind);
-    const auto buffer = io::read(filename);
-    const auto* data = reinterpret_cast<const char*>(buffer.data());
-    const auto size = buffer.size();
-    const auto label = std::format("@{}", filename);
-
-    luaL_loadbuffer(L, data, size, label.c_str());
-    if (lua_pcall(L, 0, 1, 0) != 0) {
-      std::string error = lua_tostring(L, -1);
-      lua_pop(L, 1);
-      throw std::runtime_error(error);
-    }
-
-    animatable animatable{};
-
-    lua_getfield(L, -1, "atlas");
-    if (lua_isstring(L, -1))
-      renderable.atlas = hash(lua_tostring(L, -1));
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "animations");
-    if (lua_istable(L, -1)) {
-      lua_pushnil(L);
-      while (lua_next(L, -2) != 0) {
-        const std::string_view key = lua_tostring(L, -2);
-
-        struct animation a{};
-        a.name = hash(key);
-        lookup.emplace(a.name, key);
-
-        const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
-        for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
-          lua_rawgeti(L, -1, static_cast<int>(i));
-          assert(lua_istable(L, -1) && "keyframe must be a table");
-
-          lua_rawgeti(L, -1, 1);
-          a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
-          lua_pop(L, 1);
-
-          lua_rawgeti(L, -1, 2);
-          a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
-          lua_pop(L, 1);
-
-          ++a.count;
-          lua_pop(L, 1);
-        }
-
-        lua_getfield(L, -1, "next");
-        if (lua_isstring(L, -1))
-          a.next = hash(lua_tostring(L, -1));
-        lua_pop(L, 1);
-
-        lua_getfield(L, -1, "once");
-        if (lua_isboolean(L, -1))
-          a.once = lua_toboolean(L, -1) != 0;
-        lua_pop(L, 1);
-
-        assert(animatable.count < animatable.animations.size() && "too many animations");
-        animatable.animations[animatable.count++] = a;
-
-        lua_pop(L, 1);
-      }
-    }
-    lua_pop(L, 1);
-
-    auto on_spawn_ref = LUA_NOREF;
-    auto on_loop_ref = LUA_NOREF;
-    auto on_animation_end_ref = LUA_NOREF;
-
-    lua_getfield(L, -1, "on_spawn");
-    if (lua_isfunction(L, -1))
-      on_spawn_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      lua_pop(L, 1);
-
-    lua_getfield(L, -1, "on_loop");
-    if (lua_isfunction(L, -1))
-      on_loop_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      lua_pop(L, 1);
-
-    lua_getfield(L, -1, "on_animation_end");
-    if (lua_isfunction(L, -1))
-      on_animation_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      lua_pop(L, 1);
-
-    const auto object_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    registry.emplace<::animatable>(entity, animatable.animations, animatable.count);
-    auto& scriptable = registry.emplace<::scriptable>(entity);
-    scriptable.on_spawn = on_spawn_ref;
-    scriptable.on_loop = on_loop_ref;
-    scriptable.on_animation_end = on_animation_end_ref;
-
-    lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
-    auto* memory = lua_newuserdata(L, sizeof(entityproxy));
-    new (memory) entityproxy(registry, entity, object_ref, name);
-    luaL_getmetatable(L, "Object");
-    lua_setmetatable(L, -2);
-    lua_pushvalue(L, -1);
-    scriptable.self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    lua_setfield(L, -2, name.data());
-    lua_pop(L, 1);
-
-    if (on_spawn_ref != LUA_NOREF) {
-      lua_rawgeti(L, LUA_REGISTRYINDEX, on_spawn_ref);
-      lua_rawgeti(L, LUA_REGISTRYINDEX, scriptable.self_ref);
-      if (lua_pcall(L, 1, 0, 0) != 0) {
-        std::string error = lua_tostring(L, -1);
-        lua_pop(L, 1);
-        throw std::runtime_error(error);
-      }
-    }
-  }
-
-  void on_destroy_scriptable(entt::registry& registry, entt::entity entity) {
-    auto& scriptable = registry.get<::scriptable>(entity);
-    if (scriptable.on_spawn != LUA_NOREF)
-      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_spawn);
-    if (scriptable.on_loop != LUA_NOREF)
-      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_loop);
-    if (scriptable.on_animation_end != LUA_NOREF)
-      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.on_animation_end);
-    if (scriptable.self_ref != LUA_NOREF)
-      luaL_unref(L, LUA_REGISTRYINDEX, scriptable.self_ref);
   }
 }
 
@@ -328,23 +18,9 @@ scene::scene(std::string_view name, compositor& compositor)
   def.gravity = {0.0f, 0.0f};
   _world = b2CreateWorld(&def);
 
-  lookup.reserve(lookup_capacity);
-
-  _registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
+  object::register_metatable();
+  object::connect_signals(_registry);
   _registry.ctx().emplace<dirtable>();
-
-  luaL_newmetatable(L, "Object");
-
-  lua_pushcfunction(L, entity_index);
-  lua_setfield(L, -2, "__index");
-
-  lua_pushcfunction(L, entity_newindex);
-  lua_setfield(L, -2, "__newindex");
-
-  lua_pushcfunction(L, entity_gc);
-  lua_setfield(L, -2, "__gc");
-
-  lua_pop(L, 1);
 
   lua_pushvalue(L, LUA_GLOBALSINDEX);
   _G = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -409,7 +85,7 @@ scene::scene(std::string_view name, compositor& compositor)
     if (lua_isstring(L, -1)) animation = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    create_object(_registry, _pool, _next_z++, entry_name, kind, x, y, animation);
+    object::create(_registry, _world, _compositor, _pool, _next_z++, entry_name, kind, x, y, animation);
 
     lua_pop(L, 1);
   }
@@ -447,13 +123,19 @@ void scene::on_enter() {
 }
 
 void scene::on_loop(float delta) {
+  _accumulator += delta;
+  while (_accumulator >= fixed_timestep) {
+    b2World_Step(_world, fixed_timestep, world_substeps);
+    _accumulator -= fixed_timestep;
+  }
+
   animator::update(_registry, delta);
+  object::sync_collision(_registry, _compositor);
   scripting::update(_registry, delta);
 
   auto& d = _registry.ctx().get<dirtable>();
   if (d.is(dirtable::sort)) {
     _registry.sort<sorteable>(by_depth, entt::insertion_sort{});
-
     d.clear(dirtable::sort);
   }
 

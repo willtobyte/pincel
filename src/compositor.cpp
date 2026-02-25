@@ -33,6 +33,23 @@ void compositor::submit(std::span<const entry> entries) {
   _entry_count += entries.size();
 }
 
+const atlas::sprite* compositor::get_sprite(entt::id_type atlas_id, int index) const {
+  const auto it = _atlases.find(atlas_id);
+  if (it == _atlases.end()) return nullptr;
+
+  const auto& a = it->second;
+  if (index < 0 || index >= static_cast<int>(a._sprite_count)) return nullptr;
+
+  return &a._sprites[static_cast<size_t>(index)];
+}
+
+bool compositor::has_hitbox(entt::id_type atlas_id) const {
+  const auto it = _atlases.find(atlas_id);
+  if (it == _atlases.end()) return false;
+
+  return it->second._has_hitbox;
+}
+
 void compositor::draw() {
   if (_entry_count == 0) [[unlikely]] return;
 

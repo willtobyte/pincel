@@ -1,5 +1,18 @@
 #include "atlas.hpp"
 
+namespace {
+  constexpr int field_x = 1;
+  constexpr int field_y = 2;
+  constexpr int field_w = 3;
+  constexpr int field_h = 4;
+  constexpr int field_hx = 5;
+  constexpr int field_hy = 6;
+  constexpr int field_hw = 7;
+  constexpr int field_hh = 8;
+  constexpr int field_body_type = 9;
+  constexpr uint32_t fields_with_hitbox = 9;
+}
+
 atlas::atlas(std::string_view name) {
   const auto png = io::read(std::format("blobs/atlas/{}.png", name));
 
@@ -54,30 +67,54 @@ atlas::atlas(std::string_view name) {
     lua_rawgeti(L, -1, static_cast<int>(i));
     assert(lua_istable(L, -1) && "sprite entry must be a table");
 
-    lua_rawgeti(L, -1, 1);
+    lua_rawgeti(L, -1, field_x);
     const auto x = static_cast<float>(lua_tonumber(L, -1));
     lua_pop(L, 1);
 
-    lua_rawgeti(L, -1, 2);
+    lua_rawgeti(L, -1, field_y);
     const auto y = static_cast<float>(lua_tonumber(L, -1));
     lua_pop(L, 1);
 
-    lua_rawgeti(L, -1, 3);
+    lua_rawgeti(L, -1, field_w);
     const auto w = static_cast<float>(lua_tonumber(L, -1));
     lua_pop(L, 1);
 
-    lua_rawgeti(L, -1, 4);
+    lua_rawgeti(L, -1, field_h);
     const auto h = static_cast<float>(lua_tonumber(L, -1));
     lua_pop(L, 1);
 
-    _sprites[_sprite_count++] = sprite{
-      .u0 = x / fw,
-      .v0 = y / fh,
-      .u1 = (x + w) / fw,
-      .v1 = (y + h) / fh,
-      .w = w,
-      .h = h,
-    };
+    auto& s = _sprites[_sprite_count++];
+    s.u0 = x / fw;
+    s.v0 = y / fh;
+    s.u1 = (x + w) / fw;
+    s.v1 = (y + h) / fh;
+    s.w = w;
+    s.h = h;
+
+    const auto fields = static_cast<uint32_t>(lua_objlen(L, -1));
+    if (fields >= fields_with_hitbox) {
+      lua_rawgeti(L, -1, field_hx);
+      s.hx = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, field_hy);
+      s.hy = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, field_hw);
+      s.hw = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, field_hh);
+      s.hh = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, field_body_type);
+      s.type = static_cast<body_type>(static_cast<uint8_t>(lua_tonumber(L, -1)));
+      lua_pop(L, 1);
+
+      _has_hitbox = true;
+    }
 
     lua_pop(L, 1);
   }
