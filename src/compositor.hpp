@@ -21,6 +21,8 @@ public:
   const atlas::sprite* get_sprite(entt::id_type atlas_id, int index) const;
 
 private:
+  void draw(size_t i);
+
   std::unordered_map<entt::id_type, class atlas> _atlases;
   std::vector<entry> _entries;
   std::vector<SDL_Vertex> _vertices;
