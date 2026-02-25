@@ -59,14 +59,20 @@ engine::engine() {
 
   SDL_RaiseWindow(window);
 
-  lua_newtable(L);
-  lua_pushinteger(L, width);
-  lua_setfield(L, -2, "width");
-  lua_pushinteger(L, height);
-  lua_setfield(L, -2, "height");
-  lua_setglobal(L, "viewport");
+  viewport = {
+    static_cast<float>(width) / scale,
+    static_cast<float>(height) / scale,
+    scale
+  };
 
-  viewport = {static_cast<float>(width), static_cast<float>(height)};
+  lua_newtable(L);
+  lua_pushnumber(L, static_cast<lua_Number>(viewport.width));
+  lua_setfield(L, -2, "width");
+  lua_pushnumber(L, static_cast<lua_Number>(viewport.height));
+  lua_setfield(L, -2, "height");
+  lua_pushnumber(L, static_cast<lua_Number>(viewport.scale));
+  lua_setfield(L, -2, "scale");
+  lua_setglobal(L, "viewport");
 
   _manager = std::make_unique<manager>();
   _manager->set("test");

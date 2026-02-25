@@ -2,20 +2,12 @@
 
 #include "common.hpp"
 
-enum class body_type : uint8_t {
-  none,
-  stationary,
-  kinematic,
-  sensor,
-};
-
 class atlas final {
 public:
   struct alignas(8) sprite final {
     float u0, v0, u1, v1;
     float w, h;
     float hx{}, hy{}, hw{}, hh{};
-    body_type type{};
   };
 
   atlas() = delete;

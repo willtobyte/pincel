@@ -9,8 +9,7 @@ namespace {
   constexpr int field_hy = 6;
   constexpr int field_hw = 7;
   constexpr int field_hh = 8;
-  constexpr int field_body_type = 9;
-  constexpr uint32_t fields_with_hitbox = 9;
+  constexpr uint32_t fields_with_hitbox = 8;
 }
 
 atlas::atlas(std::string_view name) {
@@ -107,10 +106,6 @@ atlas::atlas(std::string_view name) {
 
       lua_rawgeti(L, -1, field_hh);
       s.hh = static_cast<float>(lua_tonumber(L, -1));
-      lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, field_body_type);
-      s.type = static_cast<body_type>(static_cast<uint8_t>(lua_tonumber(L, -1)));
       lua_pop(L, 1);
 
       _has_hitbox = true;

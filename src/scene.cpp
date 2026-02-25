@@ -1,5 +1,8 @@
 #include "scene.hpp"
 #include "object.hpp"
+#include "collidable.hpp"
+#include "identifiable.hpp"
+#include "scriptable.hpp"
 #include "dirtable.hpp"
 #include "sorteable.hpp"
 
@@ -7,8 +10,100 @@ namespace {
   constexpr auto fixed_timestep = 1.0f / 60.0f;
   constexpr auto world_substeps = 4;
 
+  constexpr std::string_view directions[] = {"left", "right", "top", "bottom"};
+
   bool by_depth(const sorteable& a, const sorteable& b) {
     return a.z < b.z;
+  }
+
+  void dispatch_sensor_events(b2WorldId world, entt::registry& registry) {
+    const auto events = b2World_GetSensorEvents(world);
+
+    for (int i = 0; i < events.beginCount; ++i) {
+      const auto& e = events.beginEvents[i];
+      assert(b2Shape_IsValid(e.sensorShapeId) && "sensor shape must be valid");
+      assert(b2Shape_IsValid(e.visitorShapeId) && "visitor shape must be valid");
+
+      const auto a = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.sensorShapeId)));
+      const auto b = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.visitorShapeId)));
+
+      const auto& id_a = registry.get<identifiable>(a);
+      const auto& id_b = registry.get<identifiable>(b);
+      const auto& s_a = registry.get<scriptable>(a);
+      const auto& s_b = registry.get<scriptable>(b);
+
+      const auto& name_a = lookup.at(id_a.name);
+      const auto& kind_a = lookup.at(id_a.kind);
+      const auto& name_b = lookup.at(id_b.name);
+      const auto& kind_b = lookup.at(id_b.kind);
+
+      if (s_a.on_collision != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.on_collision);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.self_ref);
+        lua_pushstring(L, name_b.c_str());
+        lua_pushstring(L, kind_b.c_str());
+        if (lua_pcall(L, 3, 0, 0) != 0) {
+          std::string error = lua_tostring(L, -1);
+          lua_pop(L, 1);
+          throw std::runtime_error(error);
+        }
+      }
+
+      if (s_b.on_collision != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.on_collision);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.self_ref);
+        lua_pushstring(L, name_a.c_str());
+        lua_pushstring(L, kind_a.c_str());
+        if (lua_pcall(L, 3, 0, 0) != 0) {
+          std::string error = lua_tostring(L, -1);
+          lua_pop(L, 1);
+          throw std::runtime_error(error);
+        }
+      }
+    }
+
+    for (int i = 0; i < events.endCount; ++i) {
+      const auto& e = events.endEvents[i];
+      if (!b2Shape_IsValid(e.sensorShapeId) || !b2Shape_IsValid(e.visitorShapeId))
+        continue;
+
+      const auto a = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.sensorShapeId)));
+      const auto b = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(b2Shape_GetUserData(e.visitorShapeId)));
+
+      const auto& id_a = registry.get<identifiable>(a);
+      const auto& id_b = registry.get<identifiable>(b);
+      const auto& s_a = registry.get<scriptable>(a);
+      const auto& s_b = registry.get<scriptable>(b);
+
+      const auto& name_a = lookup.at(id_a.name);
+      const auto& kind_a = lookup.at(id_a.kind);
+      const auto& name_b = lookup.at(id_b.name);
+      const auto& kind_b = lookup.at(id_b.kind);
+
+      if (s_a.on_collision_end != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.on_collision_end);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.self_ref);
+        lua_pushstring(L, name_b.c_str());
+        lua_pushstring(L, kind_b.c_str());
+        if (lua_pcall(L, 3, 0, 0) != 0) {
+          std::string error = lua_tostring(L, -1);
+          lua_pop(L, 1);
+          throw std::runtime_error(error);
+        }
+      }
+
+      if (s_b.on_collision_end != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.on_collision_end);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s_b.self_ref);
+        lua_pushstring(L, name_a.c_str());
+        lua_pushstring(L, kind_a.c_str());
+        if (lua_pcall(L, 3, 0, 0) != 0) {
+          std::string error = lua_tostring(L, -1);
+          lua_pop(L, 1);
+          throw std::runtime_error(error);
+        }
+      }
+    }
   }
 }
 
@@ -126,12 +221,61 @@ void scene::on_loop(float delta) {
   _accumulator += delta;
   while (_accumulator >= fixed_timestep) {
     b2World_Step(_world, fixed_timestep, world_substeps);
+    dispatch_sensor_events(_world, _registry);
     _accumulator -= fixed_timestep;
   }
 
   animator::update(_registry, delta);
   object::sync_collision(_registry, _compositor);
+
   scripting::update(_registry, delta);
+
+  for (auto&& [entity, s, c] : _registry.view<scriptable, collidable>().each()) {
+    if (s.on_screen_exit == LUA_NOREF && s.on_screen_enter == LUA_NOREF)
+      continue;
+
+    if (!b2Shape_IsValid(c.shape))
+      continue;
+
+    const auto aabb = b2Shape_GetAABB(c.shape);
+
+    uint8_t current = 0;
+    if (aabb.upperBound.x < 0)               current |= scriptable::screen_left;
+    if (aabb.lowerBound.x > viewport.width)   current |= scriptable::screen_right;
+    if (aabb.upperBound.y < 0)                current |= scriptable::screen_top;
+    if (aabb.lowerBound.y > viewport.height)  current |= scriptable::screen_bottom;
+
+    const auto exited  = static_cast<uint8_t>(current & ~s.screen_previous);
+    const auto entered = static_cast<uint8_t>(s.screen_previous & ~current);
+
+    for (uint8_t bit = 0; bit < 4; ++bit) {
+      const auto mask = static_cast<uint8_t>(1u << bit);
+
+      if ((exited & mask) && s.on_screen_exit != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s.on_screen_exit);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s.self_ref);
+        lua_pushstring(L, directions[bit].data());
+        if (lua_pcall(L, 2, 0, 0) != 0) {
+          std::string error = lua_tostring(L, -1);
+          lua_pop(L, 1);
+          throw std::runtime_error(error);
+        }
+      }
+
+      if ((entered & mask) && s.on_screen_enter != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s.on_screen_enter);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, s.self_ref);
+        lua_pushstring(L, directions[bit].data());
+        if (lua_pcall(L, 2, 0, 0) != 0) {
+          std::string error = lua_tostring(L, -1);
+          lua_pop(L, 1);
+          throw std::runtime_error(error);
+        }
+      }
+    }
+
+    s.screen_previous = current;
+  }
 
   auto& d = _registry.ctx().get<dirtable>();
   if (d.is(dirtable::sort)) {

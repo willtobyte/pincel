@@ -9,33 +9,12 @@ return {
     self.health = 100
   end,
 
-  on_loop = function(self, delta)
-    if keyboard.w then self.y = self.y - 1 end
-    if keyboard.s then self.y = self.y + 1 end
-    if keyboard.a then self.x = self.x - 1 end
-    if keyboard.d then self.x = self.x + 1 end
-
-    if keyboard.space then self:damage(10) end
-  end,
-
-  on_animation_end = function(self, animation)
-    --
-  end,
-
   on_collision = function(self, name, kind)
     print("[COLLISION] " .. self.name .. " (" .. self.kind .. ") hit " .. name .. " (" .. kind .. ")")
   end,
 
   on_collision_end = function(self, name, kind)
     print("[COLLISION END] " .. self.name .. " (" .. self.kind .. ") left " .. name .. " (" .. kind .. ")")
-  end,
-
-  on_screen_exit = function(self, direction)
-    print("left screen: " .. direction)
-  end,
-
-  on_screen_enter = function(self, direction)
-    print("entered screen: " .. direction)
   end,
 
   on_damage = function(self, amount)

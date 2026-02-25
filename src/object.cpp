@@ -1,5 +1,6 @@
 #include "object.hpp"
 #include "collidable.hpp"
+#include "identifiable.hpp"
 #include "renderable.hpp"
 #include "scriptable.hpp"
 #include "sorteable.hpp"
@@ -28,19 +29,6 @@ namespace {
 
   entt::id_type hash(std::string_view value) {
     return entt::hashed_string::value(value.data(), value.size());
-  }
-
-  b2BodyType to_b2_body_type(body_type type) {
-    switch (type) {
-      case body_type::stationary: return b2_staticBody;
-      case body_type::kinematic: return b2_kinematicBody;
-      case body_type::sensor: return b2_kinematicBody;
-      default: return b2_kinematicBody;
-    }
-  }
-
-  bool is_sensor(body_type type) {
-    return type == body_type::sensor;
   }
 
   void detach_shape(collidable& c) {
@@ -98,6 +86,24 @@ namespace {
     if (key == "animation") {
       const auto& r = registry.get<renderable>(entity);
       const auto it = lookup.find(r.animation);
+      if (it == lookup.end())
+        return lua_pushnil(state), 1;
+      lua_pushstring(state, it->second.c_str());
+      return 1;
+    }
+
+    if (key == "name") {
+      const auto& id = registry.get<identifiable>(entity);
+      const auto it = lookup.find(id.name);
+      if (it == lookup.end())
+        return lua_pushnil(state), 1;
+      lua_pushstring(state, it->second.c_str());
+      return 1;
+    }
+
+    if (key == "kind") {
+      const auto& id = registry.get<identifiable>(entity);
+      const auto it = lookup.find(id.kind);
       if (it == lookup.end())
         return lua_pushnil(state), 1;
       lua_pushstring(state, it->second.c_str());
@@ -164,7 +170,6 @@ namespace {
 
     if (key == "scale") {
       registry.get<transform>(entity).scale = static_cast<float>(luaL_checknumber(state, 3));
-      registry.ctx().get<dirtable>().mark(dirtable::physics);
       return 0;
     }
 
@@ -175,7 +180,6 @@ namespace {
 
     if (key == "alpha") {
       registry.get<transform>(entity).alpha = static_cast<uint8_t>(luaL_checknumber(state, 3));
-      registry.ctx().get<dirtable>().mark(dirtable::physics);
       return 0;
     }
 
@@ -192,7 +196,6 @@ namespace {
       lookup.emplace(id, name);
       r.current_frame = 0;
       r.counter = 0;
-      registry.ctx().get<dirtable>().mark(dirtable::physics);
       return 0;
     }
 
@@ -221,6 +224,14 @@ namespace {
       luaL_unref(L, LUA_REGISTRYINDEX, s.on_loop);
     if (s.on_animation_end != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, s.on_animation_end);
+    if (s.on_collision != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, s.on_collision);
+    if (s.on_collision_end != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, s.on_collision_end);
+    if (s.on_screen_exit != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, s.on_screen_exit);
+    if (s.on_screen_enter != LUA_NOREF)
+      luaL_unref(L, LUA_REGISTRYINDEX, s.on_screen_enter);
     if (s.self_ref != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, s.self_ref);
 
@@ -341,6 +352,10 @@ void object::create(
   auto on_spawn_ref = LUA_NOREF;
   auto on_loop_ref = LUA_NOREF;
   auto on_animation_end_ref = LUA_NOREF;
+  auto on_collision_ref = LUA_NOREF;
+  auto on_collision_end_ref = LUA_NOREF;
+  auto on_screen_exit_ref = LUA_NOREF;
+  auto on_screen_enter_ref = LUA_NOREF;
 
   lua_getfield(L, -1, "on_spawn");
   if (lua_isfunction(L, -1))
@@ -360,34 +375,57 @@ void object::create(
   else
     lua_pop(L, 1);
 
+  lua_getfield(L, -1, "on_collision");
+  if (lua_isfunction(L, -1))
+    on_collision_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    lua_pop(L, 1);
+
+  lua_getfield(L, -1, "on_collision_end");
+  if (lua_isfunction(L, -1))
+    on_collision_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    lua_pop(L, 1);
+
+  lua_getfield(L, -1, "on_screen_exit");
+  if (lua_isfunction(L, -1))
+    on_screen_exit_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    lua_pop(L, 1);
+
+  lua_getfield(L, -1, "on_screen_enter");
+  if (lua_isfunction(L, -1))
+    on_screen_enter_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    lua_pop(L, 1);
+
   const auto object_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
   registry.emplace<animatable>(entity, anim.animations, anim.count);
+  registry.emplace<identifiable>(entity, hash(kind), hash(name));
   auto& scriptable = registry.emplace<::scriptable>(entity);
   scriptable.on_spawn = on_spawn_ref;
   scriptable.on_loop = on_loop_ref;
   scriptable.on_animation_end = on_animation_end_ref;
+  scriptable.on_collision = on_collision_ref;
+  scriptable.on_collision_end = on_collision_end_ref;
+  scriptable.on_screen_exit = on_screen_exit_ref;
+  scriptable.on_screen_enter = on_screen_enter_ref;
 
   if (compositor.has_hitbox(r.atlas)) {
     auto def = b2DefaultBodyDef();
-    def.type = b2_kinematicBody;
+    def.type = b2_dynamicBody;
+    def.fixedRotation = true;
+    def.gravityScale = 0.0f;
     def.position = {x, y};
     def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
-
-    for (uint32_t i = 0; i < anim.count; ++i) {
-      for (uint32_t j = 0; j < anim.animations[i].count; ++j) {
-        const auto* sprite = compositor.get_sprite(r.atlas, static_cast<int>(anim.animations[i].keyframes[j].sprite));
-        if (sprite && sprite->type != body_type::none) {
-          def.type = to_b2_body_type(sprite->type);
-          goto found;
-        }
-      }
-    }
-    found:
 
     auto& c = registry.emplace<collidable>(entity);
     c.body = b2CreateBody(world, &def);
   }
+
+  const auto kind_id = hash(kind);
+  lookup.emplace(kind_id, kind);
 
   const auto name_id = hash(name);
   lookup.emplace(name_id, name);
@@ -417,9 +455,9 @@ void object::sync_collision(entt::registry& registry, compositor& compositor) {
   for (auto&& [entity, t, r, c] : registry.view<transform, renderable, collidable>().each()) {
     const auto* sprite = compositor.get_sprite(r.atlas, static_cast<int>(r.sprite));
 
-    if (!sprite || sprite->type == body_type::none || t.alpha == 0) [[unlikely]] {
+    if (!sprite || sprite->hw == 0 || sprite->hh == 0 || t.alpha == 0) [[unlikely]] {
       detach_shape(c);
-      return;
+      continue;
     }
 
     const auto shx = sprite->hx * t.scale;
@@ -436,11 +474,11 @@ void object::sync_collision(entt::registry& registry, compositor& compositor) {
       detach_shape(c);
 
       const auto poly = b2MakeBox(shw * .5f, shh * .5f);
-      auto shape_def = b2DefaultShapeDef();
-      shape_def.isSensor = is_sensor(sprite->type);
-      shape_def.enableSensorEvents = shape_def.isSensor;
-      shape_def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
-      c.shape = b2CreatePolygonShape(c.body, &shape_def, &poly);
+      auto def = b2DefaultShapeDef();
+      def.isSensor = true;
+      def.enableSensorEvents = true;
+      def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
+      c.shape = b2CreatePolygonShape(c.body, &def, &poly);
       c.hx = shx;
       c.hy = shy;
       c.hw = shw;

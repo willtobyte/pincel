@@ -37,6 +37,7 @@ extern ma_engine* audioengine;
 struct viewport {
   float width;
   float height;
+  float scale;
 };
 
 extern struct viewport viewport;

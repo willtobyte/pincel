@@ -6,7 +6,6 @@ struct dirtable final {
   uint8_t flags{0xff};
 
   static constexpr uint8_t sort = 1 << 0;
-  static constexpr uint8_t physics = 1 << 1;
 
   void mark(uint8_t flag) noexcept { flags |= flag; }
   void clear(uint8_t flag) noexcept { flags &= static_cast<uint8_t>(~flag); }
