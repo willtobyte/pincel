@@ -206,9 +206,9 @@ void scene::on_loop(float delta) {
 
     uint8_t current = 0;
     if (aabb.upperBound.x < 0)               current |= scriptable::screen_left;
-    if (aabb.lowerBound.x > viewport.width)   current |= scriptable::screen_right;
-    if (aabb.upperBound.y < 0)                current |= scriptable::screen_top;
-    if (aabb.lowerBound.y > viewport.height)  current |= scriptable::screen_bottom;
+    if (aabb.lowerBound.x > viewport.width)  current |= scriptable::screen_right;
+    if (aabb.upperBound.y < 0)               current |= scriptable::screen_top;
+    if (aabb.lowerBound.y > viewport.height) current |= scriptable::screen_bottom;
 
     const auto exited  = static_cast<uint8_t>(current & ~s.screen_previous);
     const auto entered = static_cast<uint8_t>(s.screen_previous & ~current);
