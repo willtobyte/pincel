@@ -1,9 +1,7 @@
 return {
   animations = {
-    walk = { { 0, 200 }, { 1, 200 } },
+    walk = { atlas = "world", { 0, 200 }, { 1, 200 } },
   },
-
-  atlas = "world",
 
   on_spawn = function(self)
     self.health = 100
@@ -25,15 +23,12 @@ return {
   end,
 
   on_collision_end = function(self, name, kind)
-    print("[COLLISION END] " .. self.name .. " (" .. self.kind .. ") left " .. name .. " (" .. kind .. ")")
   end,
 
   on_screen_exit = function(self, direction)
-    print("left screen: " .. direction)
   end,
 
   on_screen_enter = function(self, direction)
-    print("entered screen: " .. direction)
   end,
 
   on_damage = function(self, amount)

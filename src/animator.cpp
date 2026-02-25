@@ -61,6 +61,7 @@ void animator::update(entt::registry& registry, float delta) {
     }
 
     if (animation && animation->count > 0) [[likely]] {
+      r.atlas = animation->atlas;
       r.sprite = animation->keyframes[r.current_frame].sprite;
     }
   }

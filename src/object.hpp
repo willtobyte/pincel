@@ -18,7 +18,7 @@ namespace object {
     std::string_view kind,
     float x,
     float y,
-    std::string_view animation
+    std::string_view initial_animation
   );
 
   void sync_collision(entt::registry& registry, compositor& compositor);

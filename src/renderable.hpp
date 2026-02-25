@@ -12,6 +12,7 @@ static_assert(std::is_trivially_copyable_v<keyframe>);
 struct animation final {
   std::array<keyframe, 16> keyframes{};
   entt::id_type name{};
+  entt::id_type atlas{};
   entt::id_type next{};
   uint32_t count{};
   bool once{};

@@ -190,12 +190,20 @@ namespace {
 
     if (key == "animation") {
       auto& r = registry.get<renderable>(entity);
-      const auto name = luaL_checkstring(state, 3);
-      const auto id = hash(name);
+      const auto value = luaL_checkstring(state, 3);
+      const auto id = hash(value);
       r.animation = id;
-      lookup.emplace(id, name);
+      lookup.emplace(id, value);
       r.current_frame = 0;
       r.counter = 0;
+
+      const auto& a = registry.get<animatable>(entity);
+      for (uint32_t i = 0; i < a.count; ++i) {
+        if (a.animations[i].name != id) continue;
+        r.atlas = a.animations[i].atlas;
+        break;
+      }
+
       return 0;
     }
 
@@ -274,15 +282,15 @@ void object::create(
   std::string_view kind,
   float x,
   float y,
-  std::string_view animation
+  std::string_view initial_animation
 ) {
   const auto entity = registry.create();
   registry.emplace<sorteable>(entity, sorteable{z});
   auto& r = registry.emplace<renderable>(entity);
   registry.emplace<transform>(entity, x, y);
 
-  if (!animation.empty())
-    r.animation = hash(animation);
+  assert(!initial_animation.empty() && "object must have an initial animation");
+  r.animation = hash(initial_animation);
 
   const auto filename = std::format("objects/{}.lua", kind);
   const auto buffer = io::read(filename);
@@ -297,55 +305,55 @@ void object::create(
     throw std::runtime_error(error);
   }
 
-  animatable anim{};
-
-  lua_getfield(L, -1, "atlas");
-  if (lua_isstring(L, -1))
-    r.atlas = hash(lua_tostring(L, -1));
-  lua_pop(L, 1);
+  animatable animation{};
 
   lua_getfield(L, -1, "animations");
-  if (lua_istable(L, -1)) {
-    lua_pushnil(L);
-    while (lua_next(L, -2) != 0) {
-      const std::string_view key = lua_tostring(L, -2);
+  assert(lua_istable(L, -1) && "object must have animations");
+  lua_pushnil(L);
+  while (lua_next(L, -2) != 0) {
+    const std::string_view key = lua_tostring(L, -2);
 
-      struct animation a{};
-      a.name = hash(key);
-      lookup.emplace(a.name, key);
+    struct ::animation a{};
+    a.name = hash(key);
+    lookup.emplace(a.name, key);
 
-      const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
-      for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
-        lua_rawgeti(L, -1, static_cast<int>(i));
-        assert(lua_istable(L, -1) && "keyframe must be a table");
+    lua_getfield(L, -1, "atlas");
+    assert(lua_isstring(L, -1) && "animation must have an atlas");
+    a.atlas = hash(lua_tostring(L, -1));
+    lua_pop(L, 1);
 
-        lua_rawgeti(L, -1, keyframe_sprite);
-        a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
-        lua_pop(L, 1);
+    const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
+    assert(length > 0 && "animation must have at least one keyframe");
+    for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
+      lua_rawgeti(L, -1, static_cast<int>(i));
+      assert(lua_istable(L, -1) && "keyframe must be a table");
 
-        lua_rawgeti(L, -1, keyframe_duration);
-        a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
-        lua_pop(L, 1);
-
-        ++a.count;
-        lua_pop(L, 1);
-      }
-
-      lua_getfield(L, -1, "next");
-      if (lua_isstring(L, -1))
-        a.next = hash(lua_tostring(L, -1));
+      lua_rawgeti(L, -1, keyframe_sprite);
+      a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
       lua_pop(L, 1);
 
-      lua_getfield(L, -1, "once");
-      if (lua_isboolean(L, -1))
-        a.once = lua_toboolean(L, -1) != 0;
+      lua_rawgeti(L, -1, keyframe_duration);
+      a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
       lua_pop(L, 1);
 
-      assert(anim.count < anim.animations.size() && "too many animations");
-      anim.animations[anim.count++] = a;
-
+      ++a.count;
       lua_pop(L, 1);
     }
+
+    lua_getfield(L, -1, "next");
+    if (lua_isstring(L, -1))
+      a.next = hash(lua_tostring(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "once");
+    if (lua_isboolean(L, -1))
+      a.once = lua_toboolean(L, -1) != 0;
+    lua_pop(L, 1);
+
+    assert(animation.count < animation.animations.size() && "too many animations");
+    animation.animations[animation.count++] = a;
+
+    lua_pop(L, 1);
   }
   lua_pop(L, 1);
 
@@ -401,7 +409,15 @@ void object::create(
 
   const auto object_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-  registry.emplace<animatable>(entity, anim.animations, anim.count);
+  registry.emplace<animatable>(entity, animation.animations, animation.count);
+
+  for (uint32_t i = 0; i < animation.count; ++i) {
+    if (animation.animations[i].name == r.animation) {
+      r.atlas = animation.animations[i].atlas;
+      break;
+    }
+  }
+
   registry.emplace<identifiable>(entity, hash(kind), hash(name));
   auto& scriptable = registry.emplace<::scriptable>(entity);
   scriptable.on_spawn = on_spawn_ref;
