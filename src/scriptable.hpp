@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-struct alignas(64) scriptable final {
+struct scriptable final {
   int on_spawn{LUA_NOREF};
   int on_loop{LUA_NOREF};
   int on_animation_end{LUA_NOREF};

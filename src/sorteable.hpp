@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-struct alignas(64) sorteable final {
+struct sorteable final {
   int16_t z{};
 };
 

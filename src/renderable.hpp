@@ -2,14 +2,14 @@
 
 #include "common.hpp"
 
-struct alignas(8) keyframe final {
+struct keyframe final {
   uint32_t sprite{};
   uint32_t duration{};
 };
 
 static_assert(std::is_trivially_copyable_v<keyframe>);
 
-struct alignas(64) animation final {
+struct animation final {
   std::array<keyframe, 16> keyframes{};
   entt::id_type name{};
   entt::id_type next{};
@@ -19,14 +19,14 @@ struct alignas(64) animation final {
 
 static_assert(std::is_trivially_copyable_v<animation>);
 
-struct alignas(64) animatable final {
+struct animatable final {
   std::array<animation, 16> animations{};
   uint32_t count{};
 };
 
 static_assert(std::is_trivially_copyable_v<animatable>);
 
-struct alignas(64) renderable final {
+struct renderable final {
   entt::id_type atlas{};
   entt::id_type animation{};
   float counter{};

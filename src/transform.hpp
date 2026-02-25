@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-struct alignas(64) transform final {
+struct transform final {
   float x{};
   float y{};
   float scale{1.0f};
