@@ -3,7 +3,7 @@
 namespace {
 constexpr auto resolution = 3600;
 constexpr auto quarter = resolution / 4;
-constexpr auto degress_to_index = static_cast<float>(resolution) / 360.0f;
+constexpr auto degrees_to_index = static_cast<float>(resolution) / 360.0f;
 }
 
 static const auto table = [] {
@@ -16,7 +16,7 @@ static const auto table = [] {
 }();
 
 static auto to_index(float degrees) -> size_t {
-  const auto index = static_cast<int>(degrees * degress_to_index);
+  const auto index = static_cast<int>(degrees * degrees_to_index + 0.5f);
   return static_cast<size_t>(((index % resolution) + resolution) % resolution);
 }
 

@@ -251,27 +251,6 @@ namespace {
 
 std::unordered_map<entt::id_type, std::string> lookup;
 
-void object::register_metatable() {
-  luaL_newmetatable(L, "Object");
-
-  lua_pushcfunction(L, object_index);
-  lua_setfield(L, -2, "__index");
-
-  lua_pushcfunction(L, object_newindex);
-  lua_setfield(L, -2, "__newindex");
-
-  lua_pushcfunction(L, object_gc);
-  lua_setfield(L, -2, "__gc");
-
-  lua_pop(L, 1);
-
-  lookup.reserve(lookup_capacity);
-}
-
-void object::connect_signals(entt::registry& registry) {
-  registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
-}
-
 void object::create(
   entt::registry& registry,
   b2WorldId world,
@@ -466,6 +445,27 @@ void object::create(
       throw std::runtime_error(error);
     }
   }
+}
+
+void object::register_metatable() {
+  luaL_newmetatable(L, "Object");
+
+  lua_pushcfunction(L, object_index);
+  lua_setfield(L, -2, "__index");
+
+  lua_pushcfunction(L, object_newindex);
+  lua_setfield(L, -2, "__newindex");
+
+  lua_pushcfunction(L, object_gc);
+  lua_setfield(L, -2, "__gc");
+
+  lua_pop(L, 1);
+
+  lookup.reserve(lookup_capacity);
+}
+
+void object::connect_signals(entt::registry& registry) {
+  registry.on_destroy<scriptable>().connect<&on_destroy_scriptable>();
 }
 
 void object::sync_collision(entt::registry& registry, compositor& compositor) {
