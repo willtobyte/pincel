@@ -107,7 +107,6 @@ atlas::atlas(std::string_view name) {
       lua_rawgeti(L, -1, field_hh);
       s.hh = static_cast<float>(lua_tonumber(L, -1));
       lua_pop(L, 1);
-
     }
 
     lua_pop(L, 1);

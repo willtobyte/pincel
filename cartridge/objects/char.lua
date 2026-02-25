@@ -10,12 +10,11 @@ return {
   end,
 
   on_loop = function(self, delta)
-    if keyboard.w then self.y = self.y - 1 end
-    if keyboard.s then self.y = self.y + 1 end
-    if keyboard.a then self.x = self.x - 1 end
-    if keyboard.d then self.x = self.x + 1 end
+    local x, y = gamepad.leftaxis
+    self.x = self.x + x
+    self.y = self.y + y
 
-    if keyboard.space then self:damage(10) end
+    if gamepad.south then self:damage(10) end
   end,
 
   on_animation_end = function(self, animation)
@@ -23,7 +22,7 @@ return {
   end,
 
   on_collision = function(self, name, kind)
-    print("[COLLISION] " .. self.name .. " (" .. self.kind .. ") hit " .. name .. " (" .. kind .. ")")
+    gamepad:rumble(0.5, 0.5, 200)
   end,
 
   on_collision_end = function(self, name, kind)
