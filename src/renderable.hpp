@@ -10,7 +10,7 @@ struct alignas(8) keyframe final {
 static_assert(std::is_trivially_copyable_v<keyframe>);
 
 struct alignas(64) animation final {
-  std::array<keyframe, 16> keyframes{};
+  std::array<keyframe, 16> keyframes{}; // keep
   entt::id_type name{};
   entt::id_type next{};
   uint32_t count{};
@@ -20,7 +20,7 @@ struct alignas(64) animation final {
 static_assert(std::is_trivially_copyable_v<animation>);
 
 struct alignas(64) animatable final {
-  std::array<animation, 16> animations{};
+  std::array<animation, 16> animations{}; // keep
   uint32_t count{};
 };
 
