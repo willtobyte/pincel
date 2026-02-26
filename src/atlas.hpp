@@ -2,6 +2,9 @@
 
 #include "common.hpp"
 
+class atlasregistry;
+class compositor;
+
 class atlas final {
 public:
   struct alignas(8) sprite final {

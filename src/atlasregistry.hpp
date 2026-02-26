@@ -2,6 +2,8 @@
 
 #include "common.hpp"
 
+class compositor;
+
 using atlas_id = entt::id_type;
 
 class atlasregistry final {
