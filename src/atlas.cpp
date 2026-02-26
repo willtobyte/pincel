@@ -61,6 +61,13 @@ atlas::atlas(std::string_view name) {
     throw std::runtime_error(error);
   }
 
+  lua_getfield(L, -1, "layer");
+  _layer = lua_isnil(L, -1) ? 0 : static_cast<int>(lua_tonumber(L, -1));
+  lua_pop(L, 1);
+
+  lua_getfield(L, -1, "sprites");
+  assert(lua_istable(L, -1) && "atlas must contain a 'sprites' table");
+
   const auto count = static_cast<uint32_t>(lua_objlen(L, -1));
   for (uint32_t i = 1; i <= count; ++i) {
     lua_rawgeti(L, -1, static_cast<int>(i));
@@ -113,4 +120,7 @@ atlas::atlas(std::string_view name) {
   }
 
   lua_pop(L, 1);
+  lua_pop(L, 1);
+
+  _vertices.reserve(_sprites.size() * 4);
 }

@@ -4,7 +4,7 @@
 
 class scene final {
 public:
-  scene(std::string_view name, compositor& compositor);
+  scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor);
   ~scene() noexcept;
 
   void on_enter();
@@ -16,6 +16,7 @@ public:
   void on_leave();
 
 private:
+  atlasregistry& _atlasregistry;
   compositor& _compositor;
   int _G;
   int _environment;

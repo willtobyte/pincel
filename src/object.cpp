@@ -6,8 +6,7 @@
 #include "sorteable.hpp"
 #include "transform.hpp"
 #include "dirtable.hpp"
-#include "compositor.hpp"
-#include "atlas.hpp"
+#include "atlasregistry.hpp"
 
 namespace {
   constexpr std::size_t lookup_capacity = 1024;
@@ -279,7 +278,7 @@ void object::setup(entt::registry& registry) {
 void object::create(
   entt::registry& registry,
   b2WorldId world,
-  compositor& compositor,
+  atlasregistry& atlasregistry,
   int pool,
   int16_t z,
   std::string_view name,
@@ -434,8 +433,8 @@ void object::create(
   scriptable.on_screen_exit = on_screen_exit_ref;
   scriptable.on_screen_enter = on_screen_enter_ref;
 
-  const auto* s = compositor.get_sprite(r.atlas, static_cast<int>(r.sprite));
-  if (s && s->has_hitbox()) {
+  const auto& sprite = atlasregistry.sprite(r.atlas, static_cast<int>(r.sprite));
+  if (sprite.hw > 0 && sprite.hh > 0) {
     auto def = b2DefaultBodyDef();
     def.type = b2_dynamicBody;
     def.fixedRotation = true;
@@ -474,22 +473,22 @@ void object::create(
   }
 }
 
-void object::update(entt::registry& registry, compositor& compositor) {
+void object::update(entt::registry& registry, atlasregistry& atlasregistry) {
   for (auto&& [entity, t, r, c] : registry.view<transform, renderable, collidable>().each()) {
-    const auto* sprite = compositor.get_sprite(r.atlas, static_cast<int>(r.sprite));
+    const auto& sprite = atlasregistry.sprite(r.atlas, static_cast<int>(r.sprite));
 
-    if (!sprite || sprite->hw == 0 || sprite->hh == 0 || t.alpha == 0) [[unlikely]] {
+    if (sprite.hw == 0 || sprite.hh == 0 || t.alpha == 0) [[unlikely]] {
       detach_shape(c);
       continue;
     }
 
-    const auto shx = sprite->hx * t.scale;
-    const auto shy = sprite->hy * t.scale;
-    const auto shw = sprite->hw * t.scale;
-    const auto shh = sprite->hh * t.scale;
+    const auto shx = sprite.hx * t.scale;
+    const auto shy = sprite.hy * t.scale;
+    const auto shw = sprite.hw * t.scale;
+    const auto shh = sprite.hh * t.scale;
 
-    const auto sw = sprite->w * t.scale;
-    const auto sh = sprite->h * t.scale;
+    const auto sw = sprite.w * t.scale;
+    const auto sh = sprite.h * t.scale;
     const auto ox = -sw * .5f + shx + shw * .5f;
     const auto oy = -sh * .5f + shy + shh * .5f;
 

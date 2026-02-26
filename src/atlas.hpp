@@ -8,7 +8,6 @@ public:
     float u0, v0, u1, v1;
     float w, h;
     float hx{}, hy{}, hw{}, hh{};
-    bool has_hitbox() const { return hw > 0 && hh > 0; }
   };
 
   atlas() = delete;
@@ -19,8 +18,11 @@ public:
   atlas& operator=(atlas&&) noexcept = default;
 
 private:
+  friend class ::atlasregistry;
   friend class ::compositor;
 
   std::unique_ptr<SDL_Texture, SDL_Deleter> _texture;
   std::vector<sprite> _sprites;
+  std::vector<SDL_Vertex> _vertices;
+  int _layer{};
 };

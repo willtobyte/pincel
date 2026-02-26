@@ -29,8 +29,6 @@
 #include <SDL3/SDL.h>
 #include <spng.h>
 
-class compositor;
-
 extern lua_State* L;
 extern SDL_Renderer* renderer;
 extern ma_engine* audioengine;
@@ -42,7 +40,5 @@ struct viewport {
 };
 
 extern struct viewport viewport;
-
-constexpr auto MAX_DELTA = 0.05f;
 
 #include "helper.hpp"

@@ -17,8 +17,8 @@ namespace {
   }
 }
 
-scene::scene(std::string_view name, compositor& compositor)
-    : _compositor(compositor) {
+scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor)
+    : _atlasregistry(atlasregistry), _compositor(compositor) {
   b2WorldDef def = b2DefaultWorldDef();
   def.gravity = {.0f, .0f};
   _world = b2CreateWorld(&def);
@@ -89,7 +89,7 @@ scene::scene(std::string_view name, compositor& compositor)
     if (lua_isstring(L, -1)) animation = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    object::create(_registry, _world, _compositor, _pool, _next_z++, entry_name, kind, x, y, animation);
+    object::create(_registry, _world, _atlasregistry, _pool, _next_z++, entry_name, kind, x, y, animation);
 
     lua_pop(L, 1);
   }
@@ -192,7 +192,7 @@ void scene::on_loop(float delta) {
   }
 
   animator::update(_registry, delta);
-  object::update(_registry, _compositor);
+  object::update(_registry, _atlasregistry);
   scripting::update(_registry, delta);
 
   for (auto&& [entity, s, c] : _registry.view<scriptable, collidable>().each()) {

@@ -10,7 +10,7 @@ namespace object {
   void create(
     entt::registry& registry,
     b2WorldId world,
-    compositor& compositor,
+    atlasregistry& atlasregistry,
     int pool,
     int16_t z,
     std::string_view name,
@@ -20,5 +20,5 @@ namespace object {
     std::string_view initial_animation
   );
 
-  void update(entt::registry& registry, compositor& compositor);
+  void update(entt::registry& registry, atlasregistry& atlasregistry);
 }

@@ -1,14 +1,15 @@
 #include "manager.hpp"
 
 manager::manager()
-  : _compositor(std::make_unique<compositor>()) {
+  : _atlasregistry(std::make_unique<atlasregistry>())
+  , _compositor(std::make_unique<compositor>(*_atlasregistry)) {
   const auto entries = io::enumerate("scenes");
 
   for (const auto& entry : entries) {
     if (!entry.ends_with(".lua")) continue;
 
     auto name = std::filesystem::path{entry}.stem().string();
-    _scenes.emplace(name, std::make_unique<scene>(name, *_compositor));
+    _scenes.emplace(name, std::make_unique<scene>(name, *_atlasregistry, *_compositor));
   }
 }
 

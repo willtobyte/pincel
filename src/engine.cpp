@@ -113,7 +113,7 @@ void engine::loop() {
   const auto now = SDL_GetPerformanceCounter();
   static auto prior = now;
   static const auto frequency = static_cast<double>(SDL_GetPerformanceFrequency());
-  const auto delta = std::min(static_cast<float>(static_cast<double>(now - prior) / frequency), MAX_DELTA);
+  const auto delta = std::min(static_cast<float>(static_cast<double>(now - prior) / frequency), .05f);
   prior = now;
 
   static auto tick = now;

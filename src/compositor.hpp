@@ -1,30 +1,19 @@
 #pragma once
 
 #include "common.hpp"
+#include "atlasregistry.hpp"
 
 class compositor final {
 public:
-  struct entry {
-    entt::id_type atlas{};
-    int index;
-    float x, y, scale, cosr, sinr;
-    uint8_t alpha;
-  };
-
-  compositor();
+  explicit compositor(atlasregistry& registry);
   ~compositor() = default;
 
-  void submit(const entry& entry);
-  void submit(std::span<const entry> entries);
+  void push(atlas_id atlas, int index, float x, float y, float scale, float cosr, float sinr, uint8_t alpha);
+
   void draw();
 
-  const atlas::sprite* get_sprite(entt::id_type atlas_id, int index) const;
-
 private:
-  void draw(size_t i);
-
-  std::unordered_map<entt::id_type, class atlas> _atlases;
-  std::vector<entry> _entries;
-  std::vector<SDL_Vertex> _vertices;
+  atlasregistry& _registry;
+  std::vector<class atlas*> _draw_order;
   std::vector<int> _indices;
 };
