@@ -84,18 +84,32 @@ engine::engine() {
 
   lua_pushcfunction(L, [](lua_State* L) -> int {
     auto* mgr = static_cast<manager*>(lua_touserdata(L, 1));
-    const char* key = luaL_checkstring(L, 2);
-    assert(std::string_view(key) == "current" && "unknown stage property");
-    lua_pushstring(L, mgr->current().c_str());
-    return 1;
+    const std::string_view key = luaL_checkstring(L, 2);
+
+    if (key == "current") {
+      lua_pushstring(L, mgr->current().c_str());
+      return 1;
+    }
+
+    if (key == "destroy") {
+      lua_pushcfunction(L, [](lua_State* L) -> int {
+        auto* mgr = static_cast<manager*>(lua_touserdata(L, 1));
+        const std::string_view name = luaL_checkstring(L, 2);
+        mgr->destroy(name);
+        return 0;
+      });
+      return 1;
+    }
+
+    return 0;
   });
   lua_setfield(L, -2, "__index");
 
   lua_pushcfunction(L, [](lua_State* L) -> int {
     auto* mgr = static_cast<manager*>(lua_touserdata(L, 1));
-    const char* key = luaL_checkstring(L, 2);
-    assert(std::string_view(key) == "current" && "unknown stage property");
-    const char* name = luaL_checkstring(L, 3);
+    const std::string_view key = luaL_checkstring(L, 2);
+    assert(key == "current" && "unknown stage property");
+    const std::string_view name = luaL_checkstring(L, 3);
     mgr->request(name);
     return 0;
   });

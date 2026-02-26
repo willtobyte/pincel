@@ -31,11 +31,37 @@ namespace {
     c.hh = {};
   }
 
+  int object_destroy(lua_State* state) {
+    auto* proxy = static_cast<objectproxy*>(luaL_checkudata(state, 1, "Object"));
+    if (!proxy->registry->valid(proxy->entity)) return 0;
+
+    const auto& lu = proxy->registry->ctx().get<lookupable>();
+    const auto it = lu.names.find(proxy->name);
+    if (it != lu.names.end()) {
+      lua_getfield(state, LUA_GLOBALSINDEX, "pool");
+      lua_pushnil(state);
+      lua_setfield(state, -2, it->second.c_str());
+      lua_pop(state, 1);
+    }
+
+    proxy->registry->destroy(proxy->entity);
+    return 0;
+  }
+
   int object_index(lua_State* state) {
     auto* proxy = static_cast<objectproxy*>(luaL_checkudata(state, 1, "Object"));
     const std::string_view key = luaL_checkstring(state, 2);
+
+    if (!proxy->registry->valid(proxy->entity))
+      return lua_pushnil(state), 1;
+
     auto& registry = *proxy->registry;
     const auto entity = proxy->entity;
+
+    if (key == "destroy") {
+      lua_pushcfunction(state, object_destroy);
+      return 1;
+    }
 
     if (key == "x") {
       lua_pushnumber(state, static_cast<double>(registry.get<transform>(entity).x));
@@ -126,6 +152,10 @@ namespace {
   int object_newindex(lua_State* state) {
     auto* proxy = static_cast<objectproxy*>(luaL_checkudata(state, 1, "Object"));
     const std::string_view key = luaL_checkstring(state, 2);
+
+    if (!proxy->registry->valid(proxy->entity))
+      return 0;
+
     auto& registry = *proxy->registry;
     const auto entity = proxy->entity;
 
@@ -233,8 +263,17 @@ namespace {
       luaL_unref(L, LUA_REGISTRYINDEX, s.on_screen_exit);
     if (s.on_screen_enter != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, s.on_screen_enter);
-    if (s.self_ref != LUA_NOREF)
+
+    if (s.self_ref != LUA_NOREF) {
+      lua_rawgeti(L, LUA_REGISTRYINDEX, s.self_ref);
+      auto* proxy = static_cast<objectproxy*>(lua_touserdata(L, -1));
+      if (proxy && proxy->object_ref != LUA_NOREF) {
+        luaL_unref(L, LUA_REGISTRYINDEX, proxy->object_ref);
+        proxy->object_ref = LUA_NOREF;
+      }
+      lua_pop(L, 1);
       luaL_unref(L, LUA_REGISTRYINDEX, s.self_ref);
+    }
 
     auto* c = registry.try_get<collidable>(entity);
     if (c)
@@ -462,6 +501,21 @@ void object::create(
       lua_pop(L, 1);
       throw std::runtime_error(error);
     }
+  }
+}
+
+void object::destroy(entt::registry& registry, int pool, std::string_view name) {
+  const auto name_id = hash(name);
+  for (auto&& [entity, id] : registry.view<identifiable>().each()) {
+    if (id.name != name_id) continue;
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
+    lua_pushnil(L);
+    lua_setfield(L, -2, name.data());
+    lua_pop(L, 1);
+
+    registry.destroy(entity);
+    return;
   }
 }
 

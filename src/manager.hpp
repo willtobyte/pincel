@@ -12,6 +12,8 @@ public:
 
   void request(std::string_view name);
 
+  void destroy(std::string_view name);
+
   const std::string& current() const;
 
   void update(float delta);

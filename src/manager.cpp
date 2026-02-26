@@ -25,6 +25,15 @@ void manager::request(std::string_view name) {
   _pending = std::string(name);
 }
 
+void manager::destroy(std::string_view name) {
+  assert(name != _current && "cannot destroy active stage");
+  const auto it = _stages.find(name);
+  if (it != _stages.end()) {
+    _stages.erase(it);
+    lua_gc(L, LUA_GCCOLLECT, 0);
+  }
+}
+
 const std::string& manager::current() const {
   return _current;
 }
