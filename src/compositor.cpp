@@ -16,11 +16,12 @@ compositor::compositor(atlasregistry& registry)
     _indices[idx + 5] = base + 3;
   }
 
-  _draw_order.reserve(_registry._atlases.size());
+  _order.reserve(_registry._atlases.size());
   for (auto& [id, a] : _registry._atlases) {
-    _draw_order.push_back(&a);
+    _order.push_back(&a);
   }
-  std::sort(_draw_order.begin(), _draw_order.end(),
+
+  std::sort(_order.begin(), _order.end(),
     [](const atlas* a, const atlas* b) { return a->_layer < b->_layer; });
 }
 
@@ -47,7 +48,7 @@ void compositor::push(atlas_id atlas, int index, float x, float y, float scale, 
 }
 
 void compositor::draw() {
-  for (auto* a : _draw_order) {
+  for (auto* a : _order) {
     if (a->_vertices.empty()) continue;
 
     const auto quad_count = a->_vertices.size() / 4;
@@ -57,6 +58,7 @@ void compositor::draw() {
       const auto old_size = _indices.size() / 6;
       const auto new_size = quad_count;
       _indices.resize(new_size * 6);
+
       for (auto q = old_size; q < new_size; ++q) {
         const auto base = static_cast<int>(q * 4);
         const auto idx = q * 6;

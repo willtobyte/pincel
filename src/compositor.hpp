@@ -14,6 +14,6 @@ public:
 
 private:
   atlasregistry& _registry;
-  std::vector<class atlas*> _draw_order;
+  std::vector<class atlas*> _order;
   std::vector<int> _indices;
 };
