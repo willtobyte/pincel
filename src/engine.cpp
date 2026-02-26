@@ -76,7 +76,7 @@ engine::engine() {
   const std::string_view initial = lua_isstring(L, -1) ? lua_tostring(L, -1) : "test";
 
   _manager = std::make_unique<manager>();
-  _manager->set(initial);
+  _manager->request(initial);
 
   lua_pop(L, 2);
 

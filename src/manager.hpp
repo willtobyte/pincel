@@ -10,8 +10,6 @@ public:
   manager();
   ~manager();
 
-  void set(std::string_view name);
-
   void request(std::string_view name);
 
   const std::string& current() const;

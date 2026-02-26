@@ -22,23 +22,6 @@ manager::~manager() {
   }
 }
 
-void manager::set(std::string_view name) {
-  const auto it = _stages.find(name);
-  assert(it != _stages.end() && "stage not found");
-
-  auto* const next = it->second.get();
-
-  if (_active == next) return;
-
-  if (_active) {
-    _active->on_leave();
-  }
-
-  _active = next;
-  _current = std::string(name);
-  _active->on_enter();
-}
-
 void manager::request(std::string_view name) {
   _pending = std::string(name);
 }
@@ -49,7 +32,21 @@ const std::string& manager::current() const {
 
 void manager::update(float delta) {
   if (_pending) {
-    set(*_pending);
+    const auto it = _stages.find(*_pending);
+    assert(it != _stages.end() && "stage not found");
+
+    auto* const next = it->second.get();
+
+    if (_active != next) {
+      if (_active) {
+        _active->on_leave();
+      }
+
+      _active = next;
+      _current = std::move(*_pending);
+      _active->on_enter();
+    }
+
     _pending.reset();
   }
 
