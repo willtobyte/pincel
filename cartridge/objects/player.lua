@@ -8,8 +8,8 @@ return {
   end,
 
   on_loop = function(self, delta)
-    self.x = self.x + gamepad.left.x
-    self.y = self.y + gamepad.left.y
+    self.x = self.x + gamepad.left_x
+    self.y = self.y + gamepad.left_y
 
     if gamepad.south then self:damage(10) end
   end,

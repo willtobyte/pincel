@@ -120,8 +120,9 @@ namespace {
     lua_pop(state, 1);
 
     lua_rawgeti(state, LUA_REGISTRYINDEX, proxy->object_ref);
-    const auto method = std::format("on_{}", key);
-    lua_getfield(state, -1, method.c_str());
+    static char buffer[64];
+    std::snprintf(buffer, sizeof(buffer), "on_%.*s", static_cast<int>(key.size()), key.data());
+    lua_getfield(state, -1, buffer);
     lua_remove(state, -2);
     if (lua_isfunction(state, -1))
       return 1;
@@ -295,13 +296,15 @@ void object::create(
   assert(!initial_animation.empty() && "object must have an initial animation");
   r.animation = hash(initial_animation);
 
-  const auto filename = std::format("objects/{}.lua", kind);
+  static char filename[128];
+  std::snprintf(filename, sizeof(filename), "objects/%.*s.lua", static_cast<int>(kind.size()), kind.data());
   const auto buffer = io::read(filename);
   const auto* data = reinterpret_cast<const char*>(buffer.data());
   const auto size = buffer.size();
-  const auto label = std::format("@{}", filename);
+  static char label[136];
+  std::snprintf(label, sizeof(label), "@%s", filename);
 
-  luaL_loadbuffer(L, data, size, label.c_str());
+  luaL_loadbuffer(L, data, size, label);
   if (lua_pcall(L, 0, 1, 0) != 0) {
     std::string error = lua_tostring(L, -1);
     lua_pop(L, 1);

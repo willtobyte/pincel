@@ -98,6 +98,7 @@ scene::scene(std::string_view name, compositor& compositor)
 }
 
 scene::~scene() noexcept {
+  _registry.clear();
   b2DestroyWorld(_world);
 
   luaL_unref(L, LUA_REGISTRYINDEX, _table);

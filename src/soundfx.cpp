@@ -12,8 +12,7 @@ soundfx::soundfx(std::string_view filename) {
       &op_free
     );
 
-    assert((error == 0)
-      && std::format("[op_open_memory] failed to decode: {}", filename).c_str());
+    assert((error == 0) && "[op_open_memory] failed to decode");
 
     channels = op_channel_count(opus.get(), -1);
     const auto nsamples = op_pcm_total(opus.get(), -1);
@@ -34,8 +33,7 @@ soundfx::soundfx(std::string_view filename) {
         continue;
       }
 
-      assert((read >= 0)
-        && std::format("[op_read_float] failed to decode: {}", filename).c_str());
+      assert((read >= 0) && "[op_read_float] failed to decode");
 
       if (read == 0) {
         break;
