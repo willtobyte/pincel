@@ -26,6 +26,7 @@ stage::stage(std::string_view name, atlasregistry& atlasregistry, compositor& co
   _world = b2CreateWorld(&def);
 
   object::setup(_registry);
+  _registry.ctx().emplace<lookupable>();
   _registry.ctx().emplace<dirtable>();
 
   lua_pushvalue(L, LUA_GLOBALSINDEX);
@@ -136,7 +137,7 @@ stage::~stage() noexcept {
   luaL_unref(L, LUA_REGISTRYINDEX, _environment);
   luaL_unref(L, LUA_REGISTRYINDEX, _G);
 
-  lookup.clear();
+
 }
 
 void stage::on_enter() {
@@ -174,9 +175,10 @@ void stage::on_loop(float delta) {
 
       const auto& id_b = _registry.get<identifiable>(b);
       const auto& s_a = _registry.get<scriptable>(a);
+      const auto& lu = _registry.ctx().get<lookupable>();
 
-      const auto& name_b = lookup.at(id_b.name);
-      const auto& kind_b = lookup.at(id_b.kind);
+      const auto& name_b = lu.names.at(id_b.name);
+      const auto& kind_b = lu.names.at(id_b.kind);
 
       if (s_a.on_collision != LUA_NOREF) {
         lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.on_collision);
@@ -201,9 +203,10 @@ void stage::on_loop(float delta) {
 
       const auto& id_b = _registry.get<identifiable>(b);
       const auto& s_a = _registry.get<scriptable>(a);
+      const auto& lu = _registry.ctx().get<lookupable>();
 
-      const auto& name_b = lookup.at(id_b.name);
-      const auto& kind_b = lookup.at(id_b.kind);
+      const auto& name_b = lu.names.at(id_b.name);
+      const auto& kind_b = lu.names.at(id_b.kind);
 
       if (s_a.on_collision_end != LUA_NOREF) {
         lua_rawgeti(L, LUA_REGISTRYINDEX, s_a.on_collision_end);

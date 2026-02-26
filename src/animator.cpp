@@ -1,7 +1,6 @@
 #include "animator.hpp"
+#include "object.hpp"
 #include "scriptable.hpp"
-
-extern std::unordered_map<entt::id_type, std::string> lookup;
 
 namespace {
   const animation* find(const animatable& a, entt::id_type name) {
@@ -16,8 +15,9 @@ namespace {
     const auto* s = registry.try_get<scriptable>(entity);
     if (!s || s->on_animation_end == LUA_NOREF) return;
 
-    const auto it = lookup.find(name);
-    if (it == lookup.end()) return;
+    const auto& lu = registry.ctx().get<lookupable>();
+    const auto it = lu.names.find(name);
+    if (it == lu.names.end()) return;
 
     lua_rawgeti(L, LUA_REGISTRYINDEX, s->on_animation_end);
     lua_rawgeti(L, LUA_REGISTRYINDEX, s->self_ref);

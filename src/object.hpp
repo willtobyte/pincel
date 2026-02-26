@@ -2,7 +2,9 @@
 
 #include "common.hpp"
 
-extern std::unordered_map<entt::id_type, std::string> lookup;
+struct lookupable final {
+  entt::dense_map<entt::id_type, std::string> names{};
+};
 
 namespace object {
   void setup(entt::registry& registry);

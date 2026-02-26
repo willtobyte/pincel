@@ -9,8 +9,6 @@
 #include "atlasregistry.hpp"
 
 namespace {
-  constexpr std::size_t lookup_capacity = 1024;
-
   constexpr int field_sprite = 1;
   constexpr int field_duration = 2;
 
@@ -84,8 +82,9 @@ namespace {
 
     if (key == "animation") {
       const auto& r = registry.get<renderable>(entity);
-      const auto it = lookup.find(r.animation);
-      if (it == lookup.end())
+      const auto& lu = registry.ctx().get<lookupable>();
+      const auto it = lu.names.find(r.animation);
+      if (it == lu.names.end())
         return lua_pushnil(state), 1;
       lua_pushstring(state, it->second.c_str());
       return 1;
@@ -93,8 +92,9 @@ namespace {
 
     if (key == "name") {
       const auto& id = registry.get<identifiable>(entity);
-      const auto it = lookup.find(id.name);
-      if (it == lookup.end())
+      const auto& lu = registry.ctx().get<lookupable>();
+      const auto it = lu.names.find(id.name);
+      if (it == lu.names.end())
         return lua_pushnil(state), 1;
       lua_pushstring(state, it->second.c_str());
       return 1;
@@ -102,8 +102,9 @@ namespace {
 
     if (key == "kind") {
       const auto& id = registry.get<identifiable>(entity);
-      const auto it = lookup.find(id.kind);
-      if (it == lookup.end())
+      const auto& lu = registry.ctx().get<lookupable>();
+      const auto it = lu.names.find(id.kind);
+      if (it == lu.names.end())
         return lua_pushnil(state), 1;
       lua_pushstring(state, it->second.c_str());
       return 1;
@@ -193,7 +194,7 @@ namespace {
       const auto value = luaL_checkstring(state, 3);
       const auto id = hash(value);
       r.animation = id;
-      lookup.emplace(id, value);
+      registry.ctx().get<lookupable>().names.emplace(id, value);
       r.current_frame = 0;
       r.counter = 0;
 
@@ -262,11 +263,8 @@ namespace {
 
     lua_pop(L, 1);
 
-    lookup.reserve(lookup_capacity);
   }
 }
-
-std::unordered_map<entt::id_type, std::string> lookup;
 
 void object::setup(entt::registry& registry) {
   static std::once_flag once;
@@ -320,7 +318,7 @@ void object::create(
 
     struct ::animation a{};
     a.name = hash(key);
-    lookup.emplace(a.name, key);
+    registry.ctx().get<lookupable>().names.emplace(a.name, key);
 
     lua_getfield(L, -1, "atlas");
     assert(lua_isstring(L, -1) && "animation must have an atlas");
@@ -446,11 +444,13 @@ void object::create(
     c.body = b2CreateBody(world, &def);
   }
 
+  auto& lu = registry.ctx().get<lookupable>();
+
   const auto kind_id = hash(kind);
-  lookup.emplace(kind_id, kind);
+  lu.names.emplace(kind_id, kind);
 
   const auto name_id = hash(name);
-  lookup.emplace(name_id, name);
+  lu.names.emplace(name_id, name);
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
   auto* memory = lua_newuserdata(L, sizeof(objectproxy));
