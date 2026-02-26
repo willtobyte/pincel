@@ -20,7 +20,7 @@ namespace {
 scene::scene(std::string_view name, compositor& compositor)
     : _compositor(compositor) {
   b2WorldDef def = b2DefaultWorldDef();
-  def.gravity = {0.0f, 0.0f};
+  def.gravity = {.0f, .0f};
   _world = b2CreateWorld(&def);
 
   object::setup(_registry);

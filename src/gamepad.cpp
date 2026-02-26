@@ -5,7 +5,7 @@ static constexpr float DEADZONE_THRESHOLD = 0.1f;
 static float deadzone(Sint16 raw) {
   const auto value = static_cast<float>(raw) / 32767.0f;
   if (std::abs(value) < DEADZONE_THRESHOLD)
-    return 0.0f;
+    return .0f;
 
   return value;
 }
@@ -219,8 +219,8 @@ static int gamepad_index(lua_State *state) {
 }
 
 static int gamepad_rumble(lua_State *state) {
-  const auto low = std::clamp(static_cast<float>(luaL_checknumber(state, 2)), 0.0f, 1.0f);
-  const auto high = std::clamp(static_cast<float>(luaL_checknumber(state, 3)), 0.0f, 1.0f);
+  const auto low = std::clamp(static_cast<float>(luaL_checknumber(state, 2)), .0f, 1.0f);
+  const auto high = std::clamp(static_cast<float>(luaL_checknumber(state, 3)), .0f, 1.0f);
   const auto duration = static_cast<Uint32>(luaL_checkinteger(state, 4));
 
   const auto low16 = static_cast<Uint16>(low * 65535.0f);
