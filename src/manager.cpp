@@ -5,13 +5,13 @@ manager::manager()
   : _atlasregistry(std::make_unique<atlasregistry>())
   , _compositor(std::make_unique<compositor>(*_atlasregistry))
   , _soundregistry(std::make_unique<soundregistry>()) {
-  const auto entries = io::enumerate("scenes");
+  const auto entries = io::enumerate("stages");
 
   for (const auto& entry : entries) {
     if (!entry.ends_with(".lua")) continue;
 
     auto name = std::filesystem::path{entry}.stem().string();
-    _scenes.emplace(name, std::make_unique<scene>(name, *_atlasregistry, *_compositor, *_soundregistry));
+    _stages.emplace(name, std::make_unique<stage>(name, *_atlasregistry, *_compositor, *_soundregistry));
   }
 }
 
@@ -23,8 +23,8 @@ manager::~manager() {
 }
 
 void manager::set(std::string_view name) {
-  const auto it = _scenes.find(name);
-  assert(it != _scenes.end() && "scene not found");
+  const auto it = _stages.find(name);
+  assert(it != _stages.end() && "stage not found");
 
   auto* const next = it->second.get();
 
@@ -35,10 +35,24 @@ void manager::set(std::string_view name) {
   }
 
   _active = next;
+  _current = std::string(name);
   _active->on_enter();
 }
 
+void manager::request(std::string_view name) {
+  _pending = std::string(name);
+}
+
+const std::string& manager::current() const {
+  return _current;
+}
+
 void manager::update(float delta) {
+  if (_pending) {
+    set(*_pending);
+    _pending.reset();
+  }
+
   if (!_active) return;
 
   _active->on_loop(delta);

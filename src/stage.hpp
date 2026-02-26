@@ -4,10 +4,10 @@
 
 class soundregistry;
 
-class scene final {
+class stage final {
 public:
-  scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry);
-  ~scene() noexcept;
+  stage(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry);
+  ~stage() noexcept;
 
   void on_enter();
 

@@ -1,4 +1,4 @@
-#include "scene.hpp"
+#include "stage.hpp"
 #include "object.hpp"
 #include "soundsystem.hpp"
 #include "soundregistry.hpp"
@@ -19,7 +19,7 @@ namespace {
   }
 }
 
-scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry)
+stage::stage(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry)
     : _atlasregistry(atlasregistry), _compositor(compositor), _soundregistry(soundregistry) {
   b2WorldDef def = b2DefaultWorldDef();
   def.gravity = {.0f, .0f};
@@ -48,7 +48,7 @@ scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& co
 
   soundsystem::wire();
 
-  const auto filename = std::format("scenes/{}.lua", name);
+  const auto filename = std::format("stages/{}.lua", name);
   const auto buffer = io::read(filename);
   const auto *data = reinterpret_cast<const char *>(buffer.data());
   const auto size = buffer.size();
@@ -92,7 +92,7 @@ scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& co
     const auto count = static_cast<int>(lua_objlen(L, -1));
     for (int i = 1; i <= count; ++i) {
       lua_rawgeti(L, -1, i);
-      assert(lua_istable(L, -1) && "scene entry must be a table");
+      assert(lua_istable(L, -1) && "stage entry must be a table");
 
       lua_getfield(L, -1, "kind");
       const std::string_view kind = luaL_checkstring(L, -1);
@@ -127,7 +127,7 @@ scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& co
   _table = luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
-scene::~scene() noexcept {
+stage::~stage() noexcept {
   _registry.clear();
   b2DestroyWorld(_world);
 
@@ -139,7 +139,7 @@ scene::~scene() noexcept {
   lookup.clear();
 }
 
-void scene::on_enter() {
+void stage::on_enter() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
   lua_replace(L, LUA_GLOBALSINDEX);
 
@@ -157,7 +157,7 @@ void scene::on_enter() {
   lua_pop(L, 1);
 }
 
-void scene::on_loop(float delta) {
+void stage::on_loop(float delta) {
   _accumulator += delta;
   while (_accumulator >= fixed_timestep) {
     b2World_Step(_world, fixed_timestep, world_substeps);
@@ -295,7 +295,7 @@ void scene::on_loop(float delta) {
   lua_pop(L, 1);
 }
 
-void scene::on_draw() {
+void stage::on_draw() {
   presenter::render(_registry, _compositor);
 
 #ifdef DEVELOPMENT
@@ -320,7 +320,7 @@ void scene::on_draw() {
 #endif
 }
 
-void scene::on_leave() {
+void stage::on_leave() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_leave");
   if (lua_isfunction(L, -1)) {

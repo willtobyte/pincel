@@ -37,8 +37,6 @@ engine::engine() {
   const auto fullscreen = lua_isboolean(L, -1) ? lua_toboolean(L, -1) : 0;
   lua_pop(L, 1);
 
-  lua_pop(L, 1);
-
   static const auto window = SDL_CreateWindow(
     title, width, height,
     fullscreen ? SDL_WINDOW_FULLSCREEN : 0
@@ -74,8 +72,41 @@ engine::engine() {
   lua_setfield(L, -2, "scale");
   lua_setglobal(L, "viewport");
 
+  lua_getfield(L, -1, "stage");
+  const std::string_view initial = lua_isstring(L, -1) ? lua_tostring(L, -1) : "test";
+
   _manager = std::make_unique<manager>();
-  _manager->set("test");
+  _manager->set(initial);
+
+  lua_pop(L, 2);
+
+  luaL_newmetatable(L, "Stage");
+
+  lua_pushcfunction(L, [](lua_State* L) -> int {
+    auto* mgr = static_cast<manager*>(lua_touserdata(L, 1));
+    const char* key = luaL_checkstring(L, 2);
+    assert(std::string_view(key) == "current" && "unknown stage property");
+    lua_pushstring(L, mgr->current().c_str());
+    return 1;
+  });
+  lua_setfield(L, -2, "__index");
+
+  lua_pushcfunction(L, [](lua_State* L) -> int {
+    auto* mgr = static_cast<manager*>(lua_touserdata(L, 1));
+    const char* key = luaL_checkstring(L, 2);
+    assert(std::string_view(key) == "current" && "unknown stage property");
+    const char* name = luaL_checkstring(L, 3);
+    mgr->request(name);
+    return 0;
+  });
+  lua_setfield(L, -2, "__newindex");
+
+  lua_pop(L, 1);
+
+  lua_pushlightuserdata(L, _manager.get());
+  luaL_getmetatable(L, "Stage");
+  lua_setmetatable(L, -2);
+  lua_setglobal(L, "stage");
 }
 
 void engine::run() {
