@@ -1,12 +1,4 @@
 #include "object.hpp"
-#include "collidable.hpp"
-#include "identifiable.hpp"
-#include "renderable.hpp"
-#include "scriptable.hpp"
-#include "sorteable.hpp"
-#include "transform.hpp"
-#include "dirtable.hpp"
-#include "atlasregistry.hpp"
 
 namespace {
   constexpr int field_sprite = 1;

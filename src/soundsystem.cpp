@@ -1,6 +1,4 @@
 #include "soundsystem.hpp"
-#include "soundfx.hpp"
-#include "soundregistry.hpp"
 
 namespace {
   int sound_play(lua_State* state) {

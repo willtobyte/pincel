@@ -1,12 +1,4 @@
 #include "stage.hpp"
-#include "object.hpp"
-#include "soundsystem.hpp"
-#include "soundregistry.hpp"
-#include "collidable.hpp"
-#include "identifiable.hpp"
-#include "scriptable.hpp"
-#include "dirtable.hpp"
-#include "sorteable.hpp"
 
 namespace {
   constexpr auto fixed_timestep = 1.0f / 60.0f;

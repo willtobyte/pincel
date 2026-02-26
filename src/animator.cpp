@@ -1,6 +1,4 @@
 #include "animator.hpp"
-#include "object.hpp"
-#include "scriptable.hpp"
 
 namespace {
   const animation* find(const animatable& a, entt::id_type name) {

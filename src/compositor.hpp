@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include "atlasregistry.hpp"
 
 class compositor final {
 public:

@@ -1,5 +1,4 @@
 #include "manager.hpp"
-#include "soundregistry.hpp"
 
 manager::manager()
   : _atlasregistry(std::make_unique<atlasregistry>())
