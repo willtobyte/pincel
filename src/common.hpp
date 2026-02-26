@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <numbers>
 #include <optional>
 #include <print>

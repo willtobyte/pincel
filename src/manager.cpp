@@ -1,15 +1,17 @@
 #include "manager.hpp"
+#include "soundregistry.hpp"
 
 manager::manager()
   : _atlasregistry(std::make_unique<atlasregistry>())
-  , _compositor(std::make_unique<compositor>(*_atlasregistry)) {
+  , _compositor(std::make_unique<compositor>(*_atlasregistry))
+  , _soundregistry(std::make_unique<soundregistry>()) {
   const auto entries = io::enumerate("scenes");
 
   for (const auto& entry : entries) {
     if (!entry.ends_with(".lua")) continue;
 
     auto name = std::filesystem::path{entry}.stem().string();
-    _scenes.emplace(name, std::make_unique<scene>(name, *_atlasregistry, *_compositor));
+    _scenes.emplace(name, std::make_unique<scene>(name, *_atlasregistry, *_compositor, *_soundregistry));
   }
 }
 

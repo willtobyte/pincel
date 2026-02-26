@@ -2,9 +2,11 @@
 
 #include "common.hpp"
 
+class soundregistry;
+
 class scene final {
 public:
-  scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor);
+  scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry);
   ~scene() noexcept;
 
   void on_enter();
@@ -18,10 +20,12 @@ public:
 private:
   atlasregistry& _atlasregistry;
   compositor& _compositor;
+  soundregistry& _soundregistry;
   int _G;
   int _environment;
   int _pool;
   int _table;
+  std::vector<std::string> _sounds;
   entt::registry _registry;
   b2WorldId _world;
   float _accumulator{};

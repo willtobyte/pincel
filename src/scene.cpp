@@ -1,5 +1,7 @@
 #include "scene.hpp"
 #include "object.hpp"
+#include "soundsystem.hpp"
+#include "soundregistry.hpp"
 #include "collidable.hpp"
 #include "identifiable.hpp"
 #include "scriptable.hpp"
@@ -17,8 +19,8 @@ namespace {
   }
 }
 
-scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor)
-    : _atlasregistry(atlasregistry), _compositor(compositor) {
+scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry)
+    : _atlasregistry(atlasregistry), _compositor(compositor), _soundregistry(soundregistry) {
   b2WorldDef def = b2DefaultWorldDef();
   def.gravity = {.0f, .0f};
   _world = b2CreateWorld(&def);
@@ -44,6 +46,8 @@ scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& co
   lua_setfield(L, -2, "pool");
   lua_pop(L, 1);
 
+  soundsystem::wire();
+
   const auto filename = std::format("scenes/{}.lua", name);
   const auto buffer = io::read(filename);
   const auto *data = reinterpret_cast<const char *>(buffer.data());
@@ -61,38 +65,64 @@ scene::scene(std::string_view name, atlasregistry& atlasregistry, compositor& co
     throw std::runtime_error(error);
   }
 
-  const auto count = static_cast<int>(lua_objlen(L, -1));
-  for (int i = 1; i <= count; ++i) {
-    lua_rawgeti(L, -1, i);
-    assert(lua_istable(L, -1) && "scene entry must be a table");
-
-    lua_getfield(L, -1, "kind");
-    const std::string_view kind = luaL_checkstring(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "name");
-    const std::string_view entry_name = luaL_checkstring(L, -1);
-    lua_pop(L, 1);
-
-    float x = 0, y = 0;
-
-    lua_getfield(L, -1, "x");
-    if (lua_isnumber(L, -1)) x = static_cast<float>(lua_tonumber(L, -1));
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "y");
-    if (lua_isnumber(L, -1)) y = static_cast<float>(lua_tonumber(L, -1));
-    lua_pop(L, 1);
-
-    std::string_view animation{};
-    lua_getfield(L, -1, "animation");
-    if (lua_isstring(L, -1)) animation = lua_tostring(L, -1);
-    lua_pop(L, 1);
-
-    object::create(_registry, _world, _atlasregistry, _pool, _next_z++, entry_name, kind, x, y, animation);
-
-    lua_pop(L, 1);
+  lua_getfield(L, -1, "sounds");
+  if (lua_istable(L, -1)) {
+    const auto count = static_cast<int>(lua_objlen(L, -1));
+    for (int i = 1; i <= count; ++i) {
+      lua_rawgeti(L, -1, i);
+      if (lua_isstring(L, -1)) {
+        const std::string_view sname = lua_tostring(L, -1);
+        auto& fx = _soundregistry.get_or_load(sname);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, _pool);
+        auto* memory = lua_newuserdata(L, sizeof(soundproxy));
+        new (memory) soundproxy{&fx};
+        luaL_getmetatable(L, "Sound");
+        lua_setmetatable(L, -2);
+        lua_setfield(L, -2, sname.data());
+        lua_pop(L, 1);
+        _sounds.emplace_back(sname);
+      }
+      lua_pop(L, 1);
+    }
   }
+  lua_pop(L, 1);
+
+  lua_getfield(L, -1, "objects");
+  if (lua_istable(L, -1)) {
+    const auto count = static_cast<int>(lua_objlen(L, -1));
+    for (int i = 1; i <= count; ++i) {
+      lua_rawgeti(L, -1, i);
+      assert(lua_istable(L, -1) && "scene entry must be a table");
+
+      lua_getfield(L, -1, "kind");
+      const std::string_view kind = luaL_checkstring(L, -1);
+      lua_pop(L, 1);
+
+      lua_getfield(L, -1, "name");
+      const std::string_view entry_name = luaL_checkstring(L, -1);
+      lua_pop(L, 1);
+
+      float x = 0, y = 0;
+
+      lua_getfield(L, -1, "x");
+      if (lua_isnumber(L, -1)) x = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_getfield(L, -1, "y");
+      if (lua_isnumber(L, -1)) y = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      std::string_view animation{};
+      lua_getfield(L, -1, "animation");
+      if (lua_isstring(L, -1)) animation = lua_tostring(L, -1);
+      lua_pop(L, 1);
+
+      object::create(_registry, _world, _atlasregistry, _pool, _next_z++, entry_name, kind, x, y, animation);
+
+      lua_pop(L, 1);
+    }
+  }
+  lua_pop(L, 1);
 
   _table = luaL_ref(L, LUA_REGISTRYINDEX);
 }
@@ -247,6 +277,8 @@ void scene::on_loop(float delta) {
     _registry.sort<sorteable>(by_depth, entt::insertion_sort{});
     d.clear(dirtable::sort);
   }
+
+  soundsystem::dispatch(_pool, _sounds, _soundregistry);
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_loop");

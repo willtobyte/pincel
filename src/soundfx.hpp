@@ -12,16 +12,21 @@ public:
   soundfx(soundfx&&) = delete;
   soundfx& operator=(soundfx&&) = delete;
 
-  void play(bool loop);
+  void play();
   void stop() noexcept;
-
-  void update(float delta);
 
   void set_volume(float gain) noexcept;
   float volume() const noexcept;
 
+  void set_loop(bool loop) noexcept;
+  bool loop() const noexcept;
+
+  bool started();
+  bool ended();
+
 private:
-  std::vector<float> _samples;
   ma_audio_buffer _buffer{};
   ma_sound _sound{};
+  std::atomic<bool> _ended{false};
+  bool _started{false};
 };
