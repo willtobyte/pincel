@@ -11,12 +11,14 @@ atlasregistry::atlasregistry() {
   }
 }
 
-const atlas::sprite& atlasregistry::sprite(atlas_id id, int index) const {
+atlas& atlasregistry::get(atlas_id id) {
   const auto it = _atlases.find(id);
   assert(it != _atlases.end() && "atlas not found");
+  return it->second;
+}
 
-  const auto& a = it->second;
-  assert(index >= 0 && index < static_cast<int>(a._sprites.size()) && "sprite index out of bounds");
-
-  return a._sprites[static_cast<size_t>(index)];
+const atlas& atlasregistry::get(atlas_id id) const {
+  const auto it = _atlases.find(id);
+  assert(it != _atlases.end() && "atlas not found");
+  return it->second;
 }

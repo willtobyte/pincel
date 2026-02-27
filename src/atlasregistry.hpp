@@ -11,7 +11,8 @@ public:
   atlasregistry();
   ~atlasregistry() = default;
 
-  const atlas::sprite& sprite(atlas_id id, int index) const;
+  atlas& get(atlas_id id);
+  const atlas& get(atlas_id id) const;
 
 private:
   friend class ::compositor;

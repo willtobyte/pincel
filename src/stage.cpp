@@ -216,7 +216,7 @@ void stage::on_loop(float delta) {
     _accumulator -= fixed_timestep;
   }
 
-  animator::update(_registry, delta);
+  animator::update(_registry, _atlasregistry, delta);
   object::update(_registry, _atlasregistry);
   scripting::update(_registry, delta);
 
@@ -291,7 +291,7 @@ void stage::on_loop(float delta) {
 }
 
 void stage::on_draw() {
-  presenter::render(_registry, _compositor);
+  presenter::render(_registry, _atlasregistry, _compositor);
 
 #ifdef DEVELOPMENT
   SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);

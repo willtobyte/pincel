@@ -2,37 +2,26 @@
 
 #include "common.hpp"
 
-struct keyframe final {
-  uint32_t sprite{};
-  uint32_t duration{};
-};
-
-static_assert(std::is_trivially_copyable_v<keyframe>);
-
-struct animation final {
-  std::array<keyframe, 16> keyframes{};
+struct mapping final {
   entt::id_type name{};
   entt::id_type atlas{};
-  entt::id_type next{};
-  uint32_t count{};
-  bool once{};
+  entt::id_type entry{};
 };
 
-static_assert(std::is_trivially_copyable_v<animation>);
+static_assert(std::is_trivially_copyable_v<mapping>);
 
-struct animatable final {
-  std::array<animation, 16> animations{};
+struct mappable final {
+  std::array<mapping, 16> mappings{};
   uint32_t count{};
 };
 
-static_assert(std::is_trivially_copyable_v<animatable>);
+static_assert(std::is_trivially_copyable_v<mappable>);
 
 struct renderable final {
   entt::id_type atlas{};
-  entt::id_type animation{};
+  entt::id_type entry{};
   float counter{};
   uint32_t current_frame{};
-  uint32_t sprite{};
 };
 
 static_assert(std::is_trivially_copyable_v<renderable>);

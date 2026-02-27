@@ -2,9 +2,6 @@
 #include "stage.hpp"
 
 namespace {
-  constexpr int field_sprite = 1;
-  constexpr int field_duration = 2;
-
   struct objectproxy final {
     entt::registry* registry;
     entt::entity entity;
@@ -19,6 +16,13 @@ namespace {
 
   entt::id_type hash(std::string_view value) {
     return entt::hashed_string::value(value.data(), value.size());
+  }
+
+  const mapping* find_mapping(const mappable& m, entt::id_type name) {
+    for (uint32_t i = 0; i < m.count; ++i) {
+      if (m.mappings[i].name == name) return &m.mappings[i];
+    }
+    return nullptr;
   }
 
   void detach_shape(collidable& c) {
@@ -102,12 +106,18 @@ namespace {
 
     if (key == "animation") {
       const auto& r = registry.get<renderable>(entity);
-      const auto& lu = registry.ctx().get<lookupable>();
-      const auto it = lu.names.find(r.animation);
-      if (it == lu.names.end())
-        return lua_pushnil(state), 1;
-      lua_pushstring(state, it->second.c_str());
-      return 1;
+      const auto& m = registry.get<mappable>(entity);
+      for (uint32_t i = 0; i < m.count; ++i) {
+        if (m.mappings[i].atlas == r.atlas && m.mappings[i].entry == r.entry) {
+          const auto& lu = registry.ctx().get<lookupable>();
+          const auto it = lu.names.find(m.mappings[i].name);
+          if (it != lu.names.end()) {
+            lua_pushstring(state, it->second.c_str());
+            return 1;
+          }
+        }
+      }
+      return lua_pushnil(state), 1;
     }
 
     if (key == "name") {
@@ -216,19 +226,32 @@ namespace {
 
     if (key == "animation") {
       auto& r = registry.get<renderable>(entity);
-      const auto value = luaL_checkstring(state, 3);
-      const auto id = hash(value);
-      r.animation = id;
-      registry.ctx().get<lookupable>().names.emplace(id, value);
+      const auto& m = registry.get<mappable>(entity);
+
+      if (lua_istable(state, 3)) {
+        lua_rawgeti(state, 3, 1);
+        const auto atlas_name = luaL_checkstring(state, -1);
+        lua_pop(state, 1);
+
+        lua_rawgeti(state, 3, 2);
+        const auto entry_name = luaL_checkstring(state, -1);
+        lua_pop(state, 1);
+
+        r.atlas = hash(atlas_name);
+        r.entry = hash(entry_name);
+      } else {
+        const auto value = luaL_checkstring(state, 3);
+        const auto id = hash(value);
+
+        const auto* mp = find_mapping(m, id);
+        assert(mp && "animation mapping not found");
+
+        r.atlas = mp->atlas;
+        r.entry = mp->entry;
+      }
+
       r.current_frame = 0;
       r.counter = 0;
-
-      const auto& a = registry.get<animatable>(entity);
-      for (uint32_t i = 0; i < a.count; ++i) {
-        if (a.animations[i].name != id) continue;
-        r.atlas = a.animations[i].atlas;
-        break;
-      }
 
       return 0;
     }
@@ -298,7 +321,6 @@ namespace {
     lua_setfield(L, -2, "__gc");
 
     lua_pop(L, 1);
-
   }
 }
 
@@ -329,7 +351,7 @@ void object::create(
   auto& r = registry.emplace<renderable>(entity);
 
   assert(!initial_animation.empty() && "object must have an initial animation");
-  r.animation = hash(initial_animation);
+  const auto initial_id = hash(initial_animation);
 
   static char filename[128];
   std::snprintf(filename, sizeof(filename), "objects/%.*s.lua", static_cast<int>(kind.size()), kind.data());
@@ -346,57 +368,7 @@ void object::create(
     throw std::runtime_error(error);
   }
 
-  animatable animation{};
-
-  lua_getfield(L, -1, "animations");
-  assert(lua_istable(L, -1) && "object must have animations");
-  lua_pushnil(L);
-  while (lua_next(L, -2) != 0) {
-    const std::string_view key = lua_tostring(L, -2);
-
-    struct ::animation a{};
-    a.name = hash(key);
-    registry.ctx().get<lookupable>().names.emplace(a.name, key);
-
-    lua_getfield(L, -1, "atlas");
-    assert(lua_isstring(L, -1) && "animation must have an atlas");
-    a.atlas = hash(lua_tostring(L, -1));
-    lua_pop(L, 1);
-
-    const auto length = static_cast<uint32_t>(lua_objlen(L, -1));
-    assert(length > 0 && "animation must have at least one keyframe");
-    for (uint32_t i = 1; i <= length && a.count < a.keyframes.size(); ++i) {
-      lua_rawgeti(L, -1, static_cast<int>(i));
-      assert(lua_istable(L, -1) && "keyframe must be a table");
-
-      lua_rawgeti(L, -1, field_sprite);
-      a.keyframes[a.count].sprite = static_cast<uint32_t>(lua_tonumber(L, -1));
-      lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, field_duration);
-      a.keyframes[a.count].duration = static_cast<uint32_t>(lua_tonumber(L, -1));
-      lua_pop(L, 1);
-
-      ++a.count;
-      lua_pop(L, 1);
-    }
-
-    lua_getfield(L, -1, "next");
-    if (lua_isstring(L, -1))
-      a.next = hash(lua_tostring(L, -1));
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "once");
-    if (lua_isboolean(L, -1))
-      a.once = lua_toboolean(L, -1) != 0;
-    lua_pop(L, 1);
-
-    assert(animation.count < animation.animations.size() && "too many animations");
-    animation.animations[animation.count++] = a;
-
-    lua_pop(L, 1);
-  }
-  lua_pop(L, 1);
+  mappable m{};
 
   auto on_spawn_ref = LUA_NOREF;
   auto on_loop_ref = LUA_NOREF;
@@ -406,58 +378,73 @@ void object::create(
   auto on_screen_exit_ref = LUA_NOREF;
   auto on_screen_enter_ref = LUA_NOREF;
 
-  lua_getfield(L, -1, "on_spawn");
-  if (lua_isfunction(L, -1))
-    on_spawn_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    lua_pop(L, 1);
+  lua_pushnil(L);
+  while (lua_next(L, -2) != 0) {
+    if (!lua_isstring(L, -2)) {
+      lua_pop(L, 1);
+      continue;
+    }
 
-  lua_getfield(L, -1, "on_loop");
-  if (lua_isfunction(L, -1))
-    on_loop_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    lua_pop(L, 1);
+    const std::string_view field = lua_tostring(L, -2);
 
-  lua_getfield(L, -1, "on_animation_end");
-  if (lua_isfunction(L, -1))
-    on_animation_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    lua_pop(L, 1);
+    if (lua_istable(L, -1)) {
+      lua_rawgeti(L, -1, 1);
+      const bool is_mapping = lua_isstring(L, -1);
+      lua_pop(L, 1);
 
-  lua_getfield(L, -1, "on_collision");
-  if (lua_isfunction(L, -1))
-    on_collision_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    lua_pop(L, 1);
+      if (is_mapping) {
+        lua_rawgeti(L, -1, 1);
+        const std::string_view atlas_name = lua_tostring(L, -1);
+        lua_pop(L, 1);
 
-  lua_getfield(L, -1, "on_collision_end");
-  if (lua_isfunction(L, -1))
-    on_collision_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    lua_pop(L, 1);
+        lua_rawgeti(L, -1, 2);
+        const std::string_view entry_name = lua_tostring(L, -1);
+        lua_pop(L, 1);
 
-  lua_getfield(L, -1, "on_screen_exit");
-  if (lua_isfunction(L, -1))
-    on_screen_exit_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    lua_pop(L, 1);
+        assert(m.count < m.mappings.size() && "too many mappings");
+        auto& mp = m.mappings[m.count++];
+        mp.name = hash(field);
+        mp.atlas = hash(atlas_name);
+        mp.entry = hash(entry_name);
 
-  lua_getfield(L, -1, "on_screen_enter");
-  if (lua_isfunction(L, -1))
-    on_screen_enter_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
+        registry.ctx().get<lookupable>().names.emplace(mp.name, field);
+      }
+    } else if (lua_isfunction(L, -1)) {
+      if (field == "on_spawn") {
+        on_spawn_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      } else if (field == "on_loop") {
+        on_loop_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      } else if (field == "on_animation_end") {
+        on_animation_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      } else if (field == "on_collision") {
+        on_collision_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      } else if (field == "on_collision_end") {
+        on_collision_end_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      } else if (field == "on_screen_exit") {
+        on_screen_exit_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      } else if (field == "on_screen_enter") {
+        on_screen_enter_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        continue;
+      }
+    }
+
     lua_pop(L, 1);
+  }
 
   const auto object_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-  registry.emplace<animatable>(entity, animation.animations, animation.count);
+  registry.emplace<mappable>(entity, m.mappings, m.count);
 
-  for (uint32_t i = 0; i < animation.count; ++i) {
-    if (animation.animations[i].name == r.animation) {
-      r.atlas = animation.animations[i].atlas;
-      break;
-    }
-  }
+  const auto* mp = find_mapping(m, initial_id);
+  assert(mp && "initial animation mapping not found in object");
+  r.atlas = mp->atlas;
+  r.entry = mp->entry;
 
   registry.emplace<identifiable>(entity, hash(kind), hash(name));
   auto& scriptable = registry.emplace<::scriptable>(entity);
@@ -469,8 +456,8 @@ void object::create(
   scriptable.on_screen_exit = on_screen_exit_ref;
   scriptable.on_screen_enter = on_screen_enter_ref;
 
-  const auto& sprite = atlasregistry.sprite(r.atlas, static_cast<int>(r.sprite));
-  if (sprite.hw > 0 && sprite.hh > 0) {
+  const auto& kf = atlasregistry.get(r.atlas).keyframe_at(r.entry, 0);
+  if (kf.sprite.hw > 0 && kf.sprite.hh > 0) {
     auto def = b2DefaultBodyDef();
     def.type = b2_dynamicBody;
     def.fixedRotation = true;
@@ -513,7 +500,8 @@ void object::create(
 
 void object::update(entt::registry& registry, atlasregistry& atlasregistry) {
   for (auto&& [entity, t, r, c] : registry.view<transform, renderable, collidable>().each()) {
-    const auto& sprite = atlasregistry.sprite(r.atlas, static_cast<int>(r.sprite));
+    const auto& kf = atlasregistry.get(r.atlas).keyframe_at(r.entry, r.current_frame);
+    const auto& sprite = kf.sprite;
 
     if (sprite.hw == 0 || sprite.hh == 0 || t.alpha == 0) [[unlikely]] {
       detach_shape(c);

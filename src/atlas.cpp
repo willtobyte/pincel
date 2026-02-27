@@ -5,11 +5,57 @@ namespace {
   constexpr int field_y = 2;
   constexpr int field_w = 3;
   constexpr int field_h = 4;
-  constexpr int field_hx = 5;
-  constexpr int field_hy = 6;
-  constexpr int field_hw = 7;
-  constexpr int field_hh = 8;
-  constexpr uint32_t fields_with_hitbox = 8;
+
+  entt::id_type hash(std::string_view value) {
+    return entt::hashed_string::value(value.data(), value.size());
+  }
+
+  atlas::sprite parse_sprite(float fw, float fh, uint32_t fields) {
+    atlas::sprite s{};
+
+    lua_rawgeti(L, -1, field_x);
+    const auto x = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, field_y);
+    const auto y = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, field_w);
+    const auto w = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, field_h);
+    const auto h = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    s.u0 = x / fw;
+    s.v0 = y / fh;
+    s.u1 = (x + w) / fw;
+    s.v1 = (y + h) / fh;
+    s.w = w;
+    s.h = h;
+
+    if (fields >= 8) {
+      lua_rawgeti(L, -1, 5);
+      s.hx = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, 6);
+      s.hy = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, 7);
+      s.hw = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, 8);
+      s.hh = static_cast<float>(lua_tonumber(L, -1));
+      lua_pop(L, 1);
+    }
+
+    return s;
+  }
 }
 
 atlas::atlas(std::string_view name) {
@@ -61,66 +107,82 @@ atlas::atlas(std::string_view name) {
     throw std::runtime_error(error);
   }
 
-  lua_getfield(L, -1, "layer");
-  _layer = lua_isnil(L, -1) ? 0 : static_cast<int>(lua_tonumber(L, -1));
-  lua_pop(L, 1);
+  assert(lua_istable(L, -1) && "atlas lua must return a table");
 
-  lua_getfield(L, -1, "sprites");
-  assert(lua_istable(L, -1) && "atlas must contain a 'sprites' table");
-
-  const auto count = static_cast<uint32_t>(lua_objlen(L, -1));
-  for (uint32_t i = 1; i <= count; ++i) {
-    lua_rawgeti(L, -1, static_cast<int>(i));
-    assert(lua_istable(L, -1) && "sprite entry must be a table");
-
-    lua_rawgeti(L, -1, field_x);
-    const auto x = static_cast<float>(lua_tonumber(L, -1));
-    lua_pop(L, 1);
-
-    lua_rawgeti(L, -1, field_y);
-    const auto y = static_cast<float>(lua_tonumber(L, -1));
-    lua_pop(L, 1);
-
-    lua_rawgeti(L, -1, field_w);
-    const auto w = static_cast<float>(lua_tonumber(L, -1));
-    lua_pop(L, 1);
-
-    lua_rawgeti(L, -1, field_h);
-    const auto h = static_cast<float>(lua_tonumber(L, -1));
-    lua_pop(L, 1);
-
-    auto& s = _sprites.emplace_back();
-    s.u0 = x / fw;
-    s.v0 = y / fh;
-    s.u1 = (x + w) / fw;
-    s.v1 = (y + h) / fh;
-    s.w = w;
-    s.h = h;
-
-    const auto fields = static_cast<uint32_t>(lua_objlen(L, -1));
-    if (fields >= fields_with_hitbox) {
-      lua_rawgeti(L, -1, field_hx);
-      s.hx = static_cast<float>(lua_tonumber(L, -1));
+  lua_pushnil(L);
+  while (lua_next(L, -2) != 0) {
+    if (!lua_isstring(L, -2)) {
       lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, field_hy);
-      s.hy = static_cast<float>(lua_tonumber(L, -1));
-      lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, field_hw);
-      s.hw = static_cast<float>(lua_tonumber(L, -1));
-      lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, field_hh);
-      s.hh = static_cast<float>(lua_tonumber(L, -1));
-      lua_pop(L, 1);
+      continue;
     }
 
+    const std::string_view key = lua_tostring(L, -2);
+    const auto entry_id = hash(key);
+
+    assert(lua_istable(L, -1) && "atlas entry must be a table");
+
+    lua_rawgeti(L, -1, 1);
+    const bool is_animation = lua_istable(L, -1);
+    lua_pop(L, 1);
+
+    animation anim{};
+
+    if (is_animation) {
+      const auto frame_count = static_cast<uint32_t>(lua_objlen(L, -1));
+      anim.keyframes.reserve(frame_count);
+
+      for (uint32_t i = 1; i <= frame_count; ++i) {
+        lua_rawgeti(L, -1, static_cast<int>(i));
+        assert(lua_istable(L, -1) && "animation frame must be a table");
+
+        const auto fields = static_cast<uint32_t>(lua_objlen(L, -1));
+        assert(fields >= 5 && "animation frame must have at least x, y, w, h, duration");
+
+        const auto duration_field = static_cast<int>(fields);
+        auto s = parse_sprite(fw, fh, fields - 1);
+
+        lua_rawgeti(L, -1, duration_field);
+        const auto duration = static_cast<uint32_t>(lua_tonumber(L, -1));
+        lua_pop(L, 1);
+
+        anim.keyframes.push_back({s, duration});
+        lua_pop(L, 1);
+      }
+
+      lua_getfield(L, -1, "next");
+      if (lua_isstring(L, -1))
+        anim.next = hash(lua_tostring(L, -1));
+      lua_pop(L, 1);
+
+      lua_getfield(L, -1, "once");
+      if (lua_isboolean(L, -1))
+        anim.once = lua_toboolean(L, -1) != 0;
+      lua_pop(L, 1);
+
+    } else {
+      const auto fields = static_cast<uint32_t>(lua_objlen(L, -1));
+      assert(fields >= 4 && "sprite must have at least x, y, w, h");
+
+      auto s = parse_sprite(fw, fh, fields);
+      anim.keyframes.push_back({s, 0});
+    }
+
+    _entries.emplace(entry_id, std::move(anim));
     lua_pop(L, 1);
   }
 
   lua_pop(L, 1);
-  lua_pop(L, 1);
+}
 
-  _vertices.reserve(_sprites.size() * 4);
+const atlas::animation* atlas::find(entt::id_type entry) const {
+  const auto it = _entries.find(entry);
+  if (it == _entries.end()) return nullptr;
+  return &it->second;
+}
+
+const atlas::keyframe& atlas::keyframe_at(entt::id_type entry, uint32_t frame) const {
+  const auto it = _entries.find(entry);
+  assert(it != _entries.end() && "entry not found in atlas");
+  assert(frame < it->second.keyframes.size() && "frame index out of bounds");
+  return it->second.keyframes[frame];
 }

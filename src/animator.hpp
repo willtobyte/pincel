@@ -2,6 +2,8 @@
 
 #include "common.hpp"
 
+class atlasregistry;
+
 namespace animator {
-  void update(entt::registry& registry, float delta);
+  void update(entt::registry& registry, atlasregistry& atlasregistry, float delta);
 }

@@ -1,7 +1,5 @@
 return {
-  animations = {
-    walk = { atlas = "world", { 0, 200 }, { 1, 200 } },
-  },
+  idle = { "world", "idle" },
 
   on_spawn = function(self)
     self.health = 100

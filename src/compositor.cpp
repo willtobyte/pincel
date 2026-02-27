@@ -1,85 +1,59 @@
 #include "compositor.hpp"
 
+namespace {
+  constexpr size_t quads = 4096;
+}
+
 compositor::compositor(atlasregistry& registry)
   : _registry(registry) {
 
-  _indices.resize(4096 * 6);
+  _indices.resize(quads * 6);
 
-  for (auto q = 0uz; q < 4096; ++q) {
+  for (auto q = 0uz; q < quads; ++q) {
     const auto base = static_cast<int>(q * 4);
-    const auto idx = q * 6;
-    _indices[idx + 0] = base;
-    _indices[idx + 1] = base + 1;
-    _indices[idx + 2] = base + 2;
-    _indices[idx + 3] = base;
-    _indices[idx + 4] = base + 2;
-    _indices[idx + 5] = base + 3;
+    const auto i = q * 6;
+    _indices[i + 0] = base;
+    _indices[i + 1] = base + 1;
+    _indices[i + 2] = base + 2;
+    _indices[i + 3] = base;
+    _indices[i + 4] = base + 2;
+    _indices[i + 5] = base + 3;
   }
-
-  _order.reserve(_registry._atlases.size());
-  for (auto& [id, a] : _registry._atlases) {
-    _order.push_back(&a);
-  }
-
-  std::sort(_order.begin(), _order.end(),
-    [](const atlas* a, const atlas* b) { return a->_layer < b->_layer; });
 }
 
-void compositor::push(atlas_id atlas, int index, float x, float y, float scale, float cosr, float sinr, uint8_t alpha) {
-  const auto it = _registry._atlases.find(atlas);
-  assert(it != _registry._atlases.end() && "atlas not found");
-  auto& a = it->second;
-
-  assert(index >= 0 && index < static_cast<int>(a._sprites.size()) && "sprite index out of bounds");
-  const auto& sprite = a._sprites[static_cast<size_t>(index)];
-
+void compositor::push(atlas& a, const atlas::sprite& sprite, float x, float y, float scale, float cosr, float sinr, uint8_t alpha) {
   const auto hw = sprite.w * scale * 0.5f;
   const auto hh = sprite.h * scale * 0.5f;
   const auto color = SDL_FColor{1.0f, 1.0f, 1.0f, static_cast<float>(alpha) / 255.0f};
 
-  a._vertices.push_back(SDL_Vertex{
-    {-hw * cosr - -hh * sinr + x, -hw * sinr + -hh * cosr + y}, color, {sprite.u0, sprite.v0}});
-  a._vertices.push_back(SDL_Vertex{
-    {+hw * cosr - -hh * sinr + x, +hw * sinr + -hh * cosr + y}, color, {sprite.u1, sprite.v0}});
-  a._vertices.push_back(SDL_Vertex{
-    {+hw * cosr - +hh * sinr + x, +hw * sinr + +hh * cosr + y}, color, {sprite.u1, sprite.v1}});
-  a._vertices.push_back(SDL_Vertex{
-    {-hw * cosr - +hh * sinr + x, -hw * sinr + +hh * cosr + y}, color, {sprite.u0, sprite.v1}});
+  const auto size = a._vertices.size();
+  assert(size / 4 < quads && "quad limit exceeded");
+
+  a._vertices.resize(size + 4);
+  auto* v = a._vertices.data() + size;
+
+  v[0] = {{-hw * cosr + hh * sinr + x, -hw * sinr - hh * cosr + y}, color, {sprite.u0, sprite.v0}};
+  v[1] = {{+hw * cosr + hh * sinr + x, +hw * sinr - hh * cosr + y}, color, {sprite.u1, sprite.v0}};
+  v[2] = {{+hw * cosr - hh * sinr + x, +hw * sinr + hh * cosr + y}, color, {sprite.u1, sprite.v1}};
+  v[3] = {{-hw * cosr - hh * sinr + x, -hw * sinr + hh * cosr + y}, color, {sprite.u0, sprite.v1}};
 }
 
 void compositor::draw() {
-  for (auto* a : _order) {
-    if (a->_vertices.empty()) continue;
+  for (auto& [id, a] : _registry._atlases) {
+    if (a._vertices.empty()) continue;
 
-    const auto quad_count = a->_vertices.size() / 4;
-    const auto index_count = quad_count * 6;
-
-    if (index_count > static_cast<size_t>(_indices.size())) {
-      const auto old_size = _indices.size() / 6;
-      const auto new_size = quad_count;
-      _indices.resize(new_size * 6);
-
-      for (auto q = old_size; q < new_size; ++q) {
-        const auto base = static_cast<int>(q * 4);
-        const auto idx = q * 6;
-        _indices[idx + 0] = base;
-        _indices[idx + 1] = base + 1;
-        _indices[idx + 2] = base + 2;
-        _indices[idx + 3] = base;
-        _indices[idx + 4] = base + 2;
-        _indices[idx + 5] = base + 3;
-      }
-    }
+    const auto count = static_cast<int>(a._vertices.size());
+    assert(count % 4 == 0 && "vertex count must be a multiple of 4");
 
     SDL_RenderGeometry(
       renderer,
-      a->_texture.get(),
-      a->_vertices.data(),
-      static_cast<int>(a->_vertices.size()),
+      a._texture.get(),
+      a._vertices.data(),
+      count,
       _indices.data(),
-      static_cast<int>(index_count)
+      count / 4 * 6
     );
 
-    a->_vertices.clear();
+    a._vertices.clear();
   }
 }

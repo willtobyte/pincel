@@ -1,14 +1,6 @@
 #include "animator.hpp"
 
 namespace {
-  const animation* find(const animatable& a, entt::id_type name) {
-    for (uint32_t i = 0; i < a.count; ++i) {
-      if (a.animations[i].name == name) return &a.animations[i];
-    }
-
-    return nullptr;
-  }
-
   void dispatch_animation_end(entt::registry& registry, entt::entity entity, entt::id_type name) {
     const auto* s = registry.try_get<scriptable>(entity);
     if (!s || s->on_animation_end == LUA_NOREF) return;
@@ -28,39 +20,37 @@ namespace {
   }
 }
 
-void animator::update(entt::registry& registry, float delta) {
-  for (auto&& [entity, r, a] : registry.view<renderable, animatable>().each()) {
-    const auto* animation = find(a, r.animation);
-    if (!animation || animation->count == 0) [[unlikely]] continue;
+void animator::update(entt::registry& registry, atlasregistry& atlasregistry, float delta) {
+  for (auto&& [entity, r] : registry.view<renderable>().each()) {
+    const auto* anim = atlasregistry.get(r.atlas).find(r.entry);
+    if (!anim || anim->keyframes.empty()) [[unlikely]] continue;
+
+    if (anim->keyframes.size() == 1 && anim->keyframes[0].duration == 0) [[unlikely]] continue;
 
     r.counter += delta * 1000.f;
 
-    while (r.counter >= static_cast<float>(animation->keyframes[r.current_frame].duration)) {
-      r.counter -= static_cast<float>(animation->keyframes[r.current_frame].duration);
+    while (r.counter >= static_cast<float>(anim->keyframes[r.current_frame].duration)) {
+      r.counter -= static_cast<float>(anim->keyframes[r.current_frame].duration);
 
-      if (r.current_frame + 1 < animation->count) {
+      if (r.current_frame + 1 < static_cast<uint32_t>(anim->keyframes.size())) {
         ++r.current_frame;
-      } else if (animation->next != 0) {
-        const auto* finished = animation;
-        r.animation = animation->next;
+      } else if (anim->next != 0) {
+        const auto finished_entry = r.entry;
+        r.entry = anim->next;
         r.current_frame = 0;
         r.counter = .0f;
-        animation = find(a, r.animation);
-        dispatch_animation_end(registry, entity, finished->name);
-        if (!animation || animation->count == 0) [[unlikely]] break;
-      } else if (animation->once) {
+        dispatch_animation_end(registry, entity, finished_entry);
+
+        anim = atlasregistry.get(r.atlas).find(r.entry);
+        if (!anim || anim->keyframes.empty()) [[unlikely]] break;
+      } else if (anim->once) {
         r.counter = .0f;
-        dispatch_animation_end(registry, entity, animation->name);
+        dispatch_animation_end(registry, entity, r.entry);
         break;
       } else {
         r.current_frame = 0;
-        dispatch_animation_end(registry, entity, animation->name);
+        dispatch_animation_end(registry, entity, r.entry);
       }
-    }
-
-    if (animation && animation->count > 0) [[likely]] {
-      r.atlas = animation->atlas;
-      r.sprite = animation->keyframes[r.current_frame].sprite;
     }
   }
 }
