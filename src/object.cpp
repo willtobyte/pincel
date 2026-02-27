@@ -471,15 +471,14 @@ void object::create(
 
   auto& lu = registry.ctx().get<lookupable>();
 
-  const auto kind_id = hash(kind);
-  lu.names.emplace(kind_id, kind);
+  lu.names.emplace(hash(kind), kind);
 
-  const auto name_id = hash(name);
-  lu.names.emplace(name_id, name);
+  const auto nid = hash(name);
+  lu.names.emplace(nid, name);
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
   auto* memory = lua_newuserdata(L, sizeof(objectproxy));
-  new (memory) objectproxy(registry, entity, object_ref, name_id);
+  new (memory) objectproxy(registry, entity, object_ref, nid);
   luaL_getmetatable(L, "Object");
   lua_setmetatable(L, -2);
   lua_pushvalue(L, -1);
