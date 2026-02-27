@@ -18,7 +18,5 @@ namespace object {
     std::string_view initial_animation
   );
 
-  void destroy(entt::registry& registry, int pool, std::string_view name);
-
   void update(entt::registry& registry, atlasregistry& atlasregistry);
 }

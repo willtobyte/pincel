@@ -318,8 +318,8 @@ void object::create(
 ) {
   const auto entity = registry.create();
   registry.emplace<sorteable>(entity, sorteable{z});
-  auto& r = registry.emplace<renderable>(entity);
   registry.emplace<transform>(entity, x, y);
+  auto& r = registry.emplace<renderable>(entity);
 
   assert(!initial_animation.empty() && "object must have an initial animation");
   r.animation = hash(initial_animation);
@@ -501,21 +501,6 @@ void object::create(
       lua_pop(L, 1);
       throw std::runtime_error(error);
     }
-  }
-}
-
-void object::destroy(entt::registry& registry, int pool, std::string_view name) {
-  const auto name_id = hash(name);
-  for (auto&& [entity, id] : registry.view<identifiable>().each()) {
-    if (id.name != name_id) continue;
-
-    lua_rawgeti(L, LUA_REGISTRYINDEX, pool);
-    lua_pushnil(L);
-    lua_setfield(L, -2, name.data());
-    lua_pop(L, 1);
-
-    registry.destroy(entity);
-    return;
   }
 }
 

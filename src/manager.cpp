@@ -1,9 +1,9 @@
 #include "manager.hpp"
 
 manager::manager()
-  : _atlasregistry(std::make_unique<atlasregistry>())
-  , _compositor(std::make_unique<compositor>(*_atlasregistry))
-  , _soundregistry(std::make_unique<soundregistry>()) {
+    : _atlasregistry(std::make_unique<atlasregistry>())
+    , _compositor(std::make_unique<compositor>(*_atlasregistry))
+    , _soundregistry(std::make_unique<soundregistry>()) {
   const auto entries = io::enumerate("stages");
 
   for (const auto& entry : entries) {
@@ -26,7 +26,17 @@ void manager::request(std::string_view name) {
 }
 
 void manager::destroy(std::string_view name) {
+  if (name == "*") {
+    std::erase_if(_stages, [this](const auto& pair) {
+      return pair.second.get() != _active;
+    });
+
+    lua_gc(L, LUA_GCCOLLECT, 0);
+    return;
+  }
+
   assert(name != _current && "cannot destroy active stage");
+
   const auto it = _stages.find(name);
   if (it != _stages.end()) {
     _stages.erase(it);
