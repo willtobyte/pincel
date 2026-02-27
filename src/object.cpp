@@ -528,6 +528,7 @@ void object::update(entt::registry& registry, atlasregistry& atlasregistry) {
         def.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
         c.shape = b2CreatePolygonShape(c.body, &def, &poly);
       }
+
       c.hx = shx;
       c.hy = shy;
       c.hw = shw;
