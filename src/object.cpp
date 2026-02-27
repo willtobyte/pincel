@@ -25,6 +25,7 @@ namespace {
       b2DestroyShape(c.shape, false);
       c.shape = b2ShapeId{};
     }
+
     c.hx = {};
     c.hy = {};
     c.hw = {};
@@ -188,6 +189,7 @@ namespace {
         sorteable.z = value;
         registry.ctx().get<dirtable>().mark(dirtable::sort);
       }
+
       return 0;
     }
 
@@ -243,6 +245,7 @@ namespace {
     auto* proxy = static_cast<objectproxy*>(luaL_checkudata(state, 1, "Object"));
     if (proxy->object_ref != LUA_NOREF)
       luaL_unref(state, LUA_REGISTRYINDEX, proxy->object_ref);
+
     proxy->~objectproxy();
     return 0;
   }
@@ -271,6 +274,7 @@ namespace {
         luaL_unref(L, LUA_REGISTRYINDEX, proxy->object_ref);
         proxy->object_ref = LUA_NOREF;
       }
+
       lua_pop(L, 1);
       luaL_unref(L, LUA_REGISTRYINDEX, s.self_ref);
     }
