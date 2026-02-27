@@ -3,8 +3,15 @@
 #include "common.hpp"
 
 class soundregistry;
+class stage;
+
+namespace object {
+  void create(stage&, int16_t, std::string_view, std::string_view, float, float, std::string_view);
+}
 
 class stage final {
+  friend void object::create(stage&, int16_t, std::string_view, std::string_view, float, float, std::string_view);
+
 public:
   stage(std::string_view name, atlasregistry& atlasregistry, compositor& compositor, soundregistry& soundregistry);
   ~stage() noexcept;

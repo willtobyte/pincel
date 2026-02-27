@@ -1,4 +1,5 @@
 #include "object.hpp"
+#include "stage.hpp"
 
 namespace {
   constexpr int field_sprite = 1;
@@ -309,10 +310,7 @@ void object::setup(entt::registry& registry) {
 }
 
 void object::create(
-  entt::registry& registry,
-  b2WorldId world,
-  atlasregistry& atlasregistry,
-  int pool,
+  stage& stage,
   int16_t z,
   std::string_view name,
   std::string_view kind,
@@ -320,6 +318,11 @@ void object::create(
   float y,
   std::string_view initial_animation
 ) {
+  auto& registry = stage._registry;
+  auto& world = stage._world;
+  auto& atlasregistry = stage._atlasregistry;
+  auto& pool = stage._pool;
+
   const auto entity = registry.create();
   registry.emplace<sorteable>(entity, sorteable{z});
   registry.emplace<transform>(entity, x, y);

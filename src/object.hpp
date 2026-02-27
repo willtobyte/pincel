@@ -6,10 +6,7 @@ namespace object {
   void setup(entt::registry& registry);
 
   void create(
-    entt::registry& registry,
-    b2WorldId world,
-    atlasregistry& atlasregistry,
-    int pool,
+    class stage& stage,
     int16_t z,
     std::string_view name,
     std::string_view kind,

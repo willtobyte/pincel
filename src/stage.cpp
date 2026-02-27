@@ -110,7 +110,7 @@ stage::stage(std::string_view name, atlasregistry& atlasregistry, compositor& co
       if (lua_isstring(L, -1)) animation = lua_tostring(L, -1);
       lua_pop(L, 1);
 
-      object::create(_registry, _world, _atlasregistry, _pool, _next_z++, entry_name, kind, x, y, animation);
+      object::create(*this, _next_z++, entry_name, kind, x, y, animation);
 
       lua_pop(L, 1);
     }
