@@ -15,7 +15,11 @@ static int searcher(lua_State *state) {
 
 void scriptengine::run() {
   lua_getglobal(L, "package");
+#ifdef HAS_LUAJIT
   lua_getfield(L, -1, "loaders");
+#else
+  lua_getfield(L, -1, "searchers");
+#endif
 
   const auto lenght = static_cast<int>(lua_objlen(L, -1));
   lua_pushcfunction(L, searcher);
@@ -23,9 +27,11 @@ void scriptengine::run() {
 
   lua_pop(L, 2);
 
+  cassette::wire();
   gamepad::wire();
   keyboard::wire();
   mouse::wire();
+  web::wire();
 
   auto e = engine();
   e.run();

@@ -2,9 +2,12 @@
 
 int application::run() {
   try {
+#ifdef EMSCRIPTEN
+    filesystem::mount("cartridge.rom", "/");
+#else
     const auto* const rom = std::getenv("CARTRIDGE");
-
     filesystem::mount(rom ? rom : "cartridge.rom", "/");
+#endif
 
     auto se = scriptengine();
     se.run();

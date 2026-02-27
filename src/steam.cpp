@@ -14,6 +14,8 @@
   #define STEAM_LIB_NAME "libsteam_api.dylib"
 #endif
 
+#if defined(_WIN32) || defined(__APPLE__)
+
 #ifndef S_CALLTYPE
   #define S_CALLTYPE __cdecl
 #endif
@@ -145,3 +147,20 @@ std::string GetFriendPersonaName(uint64_t steamId) noexcept {
 
   return {};
 }
+
+#else
+
+bool SteamAPI_InitSafe() noexcept { return false; }
+void SteamAPI_Shutdown() noexcept {}
+void SteamAPI_RunCallbacks() noexcept {}
+void* SteamUserStats() noexcept { return nullptr; }
+void* SteamFriends() noexcept { return nullptr; }
+bool GetAchievement(const char*) noexcept { return false; }
+bool SetAchievement(const char*) noexcept { return false; }
+bool StoreStats() noexcept { return false; }
+std::string GetPersonaName() noexcept { return {}; }
+int GetFriendCount() noexcept { return 0; }
+uint64_t GetFriendByIndex(int) noexcept { return 0; }
+std::string GetFriendPersonaName(uint64_t) noexcept { return {}; }
+
+#endif

@@ -123,10 +123,21 @@ engine::engine() {
   lua_setglobal(L, "stage");
 }
 
+#ifdef EMSCRIPTEN
+template <class T>
+inline void run(void* userdata) {
+  reinterpret_cast<T*>(userdata)->loop();
+}
+#endif
+
 void engine::run() {
+#ifdef EMSCRIPTEN
+  emscripten_set_main_loop_arg(::run<engine>, this, 0, true);
+#else
   while (_running) [[likely]] {
     loop();
   }
+#endif
 }
 
 void engine::loop() {

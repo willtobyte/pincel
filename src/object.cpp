@@ -44,7 +44,7 @@ namespace {
     const auto& lu = proxy->registry->ctx().get<lookupable>();
     const auto it = lu.names.find(proxy->name);
     if (it != lu.names.end()) {
-      lua_getfield(state, LUA_GLOBALSINDEX, "pool");
+      compat_getfield_global(state, "pool");
       lua_pushnil(state);
       lua_setfield(state, -2, it->second.c_str());
       lua_pop(state, 1);

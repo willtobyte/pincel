@@ -6,18 +6,26 @@ from pathlib import Path
 class Carimbo(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
 
+    @property
+    def _is_webassembly(self):
+        return str(self.settings.os).lower() == "emscripten"
+
     def requirements(self):
         for package in [
             "box2d/3.1.1",
             "entt/3.16.0",
             "libspng/0.7.4",
-            "luajit/2.1.0-beta3",
             "miniaudio/0.11.22",
             "opusfile/0.12",
             "physfs/3.2.0",
             "sdl/3.4.0",
         ]:
             self.requires(package)
+
+        if self._is_webassembly:
+            self.requires("lua/5.4.8")
+        else:
+            self.requires("luajit/2.1.0-beta3")
 
     def configure(self):
         self.options["miniaudio"].header_only = True

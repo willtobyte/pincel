@@ -1,0 +1,94 @@
+name: WebAssembly
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 8
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Conan
+        run: |
+          pip install conan
+
+          conan config install https://github.com/willtobyte/conan-configs.git --type git
+
+          git clone https://github.com/conan-io/conan-toolchains.git
+          conan remote add --force conan-toolchains ./conan-toolchains
+
+      - name: Configure profile
+        run: |
+          conan profile detect --name build
+
+          echo -e "\n[platform_tool_requires]\ncmake/[>=3 <4]" >> ~/.conan2/profiles/build
+
+          cat <<'EOF' > ~/.conan2/profiles/default
+          [replace_tool_requires]
+          meson/*: meson/[*]
+          ninja/*: ninja/[*]
+          pkgconf/*: pkgconf/[*]
+
+          [settings]
+          build_type=Release
+          compiler=emcc
+          compiler.cppstd=23
+          compiler.libcxx=libc++
+          compiler.version=4.0.22
+          os=Emscripten
+          arch=wasm
+
+          [tool_requires]
+          emsdk/4.0.22
+
+          [conf]
+          tools.cmake.cmake_layout:build_folder_vars=['settings.build_type', 'settings.arch']
+          tools.cmake.cmaketoolchain:generator=Ninja
+          tools.build:compiler_executables={'c':'emcc', 'cpp':'em++'}
+
+          [buildenv]
+          CC=emcc
+          CXX=em++
+          AR=emar
+          NM=emnm
+          RANLIB=emranlib
+          STRIP=emstrip
+          EOF
+
+      - name: Cache Conan packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.conan2/p
+          key: conan-${{ runner.os }}-webassembly-release-${{ hashFiles('conanfile.py') }}
+          restore-keys: |
+            conan-${{ runner.os }}-webassembly-release-
+            conan-${{ runner.os }}-webassembly-
+            conan-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          conan install . \
+            --output-folder=build \
+            --profile:build=build \
+            --settings:host compiler.cppstd=23 \
+            --settings:host build_type=Release \
+            --build=missing
+
+      - name: Build
+        run: |
+          cmake -Bbuild -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --verbose

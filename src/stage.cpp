@@ -21,12 +21,12 @@ stage::stage(std::string_view name, atlasregistry& atlasregistry, compositor& co
   _registry.ctx().emplace<lookupable>();
   _registry.ctx().emplace<dirtable>();
 
-  lua_pushvalue(L, LUA_GLOBALSINDEX);
+  compat_pushglobaltable(L);
   _G = luaL_ref(L, LUA_REGISTRYINDEX);
 
   lua_newtable(L);
   lua_newtable(L);
-  lua_pushvalue(L, LUA_GLOBALSINDEX);
+  compat_pushglobaltable(L);
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
   _environment = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -50,7 +50,7 @@ stage::stage(std::string_view name, atlasregistry& atlasregistry, compositor& co
   luaL_loadbuffer(L, data, size, label.c_str());
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
-  lua_setfenv(L, -2);
+  compat_setfenv(L, -2);
 
   if (lua_pcall(L, 0, 1, 0) != 0) {
     std::string error = lua_tostring(L, -1);
@@ -134,7 +134,7 @@ stage::~stage() noexcept {
 
 void stage::on_enter() {
   lua_rawgeti(L, LUA_REGISTRYINDEX, _environment);
-  lua_replace(L, LUA_GLOBALSINDEX);
+  compat_replaceglobaltable(L);
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, _table);
   lua_getfield(L, -1, "on_enter");
@@ -330,5 +330,5 @@ void stage::on_leave() {
   lua_pop(L, 1);
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, _G);
-  lua_replace(L, LUA_GLOBALSINDEX);
+  compat_replaceglobaltable(L);
 }

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <numbers>
 #include <optional>
@@ -23,12 +24,15 @@
 #include <entt/entt.hpp>
 #include <lua.hpp>
 #include <lauxlib.h>
-#include <luajit.h>
 #include <miniaudio.h>
 #include <opusfile.h>
 #include <physfs.h>
 #include <SDL3/SDL.h>
 #include <spng.h>
+
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 
 extern lua_State* L;
 extern SDL_Renderer* renderer;
@@ -42,4 +46,5 @@ struct viewport {
 
 extern struct viewport viewport;
 
+#include "compat.hpp"
 #include "helper.hpp"

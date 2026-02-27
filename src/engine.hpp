@@ -11,7 +11,6 @@ public:
 
   void run();
 
-protected:
   void loop();
 
 private:
